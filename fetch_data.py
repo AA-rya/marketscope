@@ -200,8 +200,23 @@ def main():
                 pub = (c.get("provider") or {}).get("displayName") or c.get("publisher") or ""
                 when = c.get("pubDate") or (dt.datetime.fromtimestamp(c["providerPublishTime"], dt.timezone.utc).isoformat() if c.get("providerPublishTime") else "")
                 if title and link and not any(i["url"] == link for i in items): items.append({"title": title, "url": link, "src": pub, "t": when})
+        if len(items) < 3:
+            import xml.etree.ElementTree as ET, email.utils
+            for feed in ("https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC,AAPL,NVDA,CL%3DF&region=US&lang=en-US",
+                         "https://news.google.com/rss/search?q=stock+market+when:1d&hl=en-US&gl=US&ceid=US:en"):
+                try:
+                    root = ET.fromstring(get(feed))
+                    for it in root.iter("item"):
+                        title, link = (it.findtext("title") or "").strip(), (it.findtext("link") or "").strip()
+                        pd_ = it.findtext("pubDate")
+                        when = email.utils.parsedate_to_datetime(pd_).astimezone(dt.timezone.utc).isoformat() if pd_ else ""
+                        src = (it.findtext("source") or "Yahoo Finance").strip()
+                        if title and link and not any(i["url"] == link for i in items): items.append({"title": title, "url": link, "src": src, "t": when})
+                    if len(items) >= 3: break
+                except Exception as e: DIAG.append("rss: " + repr(e)[:120])
         items.sort(key=lambda i: i["t"], reverse=True)
         if len(items) >= 3: out["news"] = items[:14]
+        else: DIAG.append("news: only %d items" % len(items))
     except Exception as e: print("news fail", e); DIAG.append("news: " + repr(e)[:200])
 
     # full Treasury curve
