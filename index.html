@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Marketscope — FMKT 256</title>
+<style>
+:root{--bg:#f7f2ea;--panel:#fffdf9;--ink:#2a2118;--mute:#7b6f60;--line:#ebe2d3;--acc:#2f5d50;--acc2:#d9663b;--up:#2f7a55;--dn:#c2452f;--shadow:0 1px 2px rgba(42,33,24,.05),0 8px 24px rgba(42,33,24,.07);--font:"Inter","SF Pro Display",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--sans:"Inter",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;gap:14px;padding:16px 32px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--acc);display:grid;place-items:center;color:var(--panel)}
+.logo svg{width:20px;height:20px}
+h1{font:700 20px var(--font);margin:0;letter-spacing:-.3px}h1 small{display:block;font:500 11px var(--sans);color:var(--mute);letter-spacing:.3px;margin-top:1px}
+.spacer{flex:1}select,input,button,textarea{font:inherit;color:var(--ink)}
+select,input[type=text],input[type=number]{background:var(--panel);border:1px solid var(--line);padding:8px 11px;border-radius:10px;outline:none;transition:border-color .15s,box-shadow .15s}
+select:focus,input:focus{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 15%,transparent)}
+button{background:var(--panel);border:1px solid var(--line);padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:500;transition:all .15s}button:hover{border-color:var(--acc);transform:translateY(-1px)}
+button.pri{background:var(--acc);color:var(--panel);border-color:var(--acc)}
+nav{display:flex;gap:6px;padding:16px 32px 0;align-items:center}
+nav .tab{padding:9px 18px;border-radius:999px;cursor:grab;font-weight:600;font-size:14px;color:var(--mute);user-select:none;transition:all .15s;background:transparent}
+nav .tab:hover{color:var(--ink)}nav .tab.on{background:var(--acc);color:var(--panel)}nav .tab.over{outline:2px dashed var(--acc2)}
+main{padding:30px 36px 70px;max-width:1200px;margin:0 auto}
+.row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}.col{flex:1;min-width:300px}
+.card{background:var(--panel);border:1px solid var(--line);padding:20px 22px;border-radius:16px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card h2{font:700 17px var(--font);margin:0 0 4px;letter-spacing:-.2px}.note{color:var(--mute);font-size:13px}
+label{display:block;font-size:12px;font-weight:600;color:var(--mute);margin:12px 0 4px;letter-spacing:.2px}
+input[type=range]{accent-color:var(--acc2)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.7px;color:var(--mute);text-align:right;padding:10px 10px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+th:first-child,td:first-child,th.l,td.l{text-align:left}td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:right}
+td:first-child{font-weight:700}
+tr.hit td{background:color-mix(in srgb,var(--acc2) 9%,transparent)}tr.hit td:first-child{box-shadow:inset 3px 0 var(--acc2)}.up{color:var(--up);font-weight:600}.dn{color:var(--dn);font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:600;border:1px solid var(--line);padding:3px 10px;border-radius:999px;color:var(--mute)}
+.pill.live{color:var(--up);border-color:color-mix(in srgb,var(--up) 40%,transparent);background:color-mix(in srgb,var(--up) 8%,transparent)}.pill.warn{color:var(--dn);border-color:color-mix(in srgb,var(--dn) 40%,transparent);background:color-mix(in srgb,var(--dn) 7%,transparent)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.kpi b{display:block;font:700 26px var(--font);letter-spacing:-.6px;margin-top:2px}.kpi span{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.6px}.kpi i{font-style:normal;font-size:13px;font-weight:600;color:var(--mute);display:block;margin-top:2px;letter-spacing:0}
+.hero{background:var(--acc);color:var(--panel);border-radius:22px;padding:34px 36px;margin-bottom:22px;position:relative;overflow:hidden}
+.hero h2{font:800 34px var(--font);letter-spacing:-1px;margin:0 0 8px;color:var(--panel)}.hero p{margin:0;max-width:560px;opacity:.85;font-size:16px}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:var(--acc2);opacity:.9}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-bottom:6px}
+.grid3 .card{margin:0}.step{width:30px;height:30px;border-radius:9px;background:color-mix(in srgb,var(--acc2) 16%,transparent);color:var(--acc2);display:grid;place-items:center;font-weight:800;margin-bottom:10px}
+.go{color:var(--acc2);font-weight:600;text-decoration:none;cursor:pointer}
+#toast{position:fixed;right:22px;bottom:22px;display:flex;flex-direction:column;gap:8px;z-index:9}
+#toast div{background:var(--ink);color:var(--panel);padding:12px 16px;border-radius:12px;max-width:340px;font-size:13px;box-shadow:var(--shadow)}
+#help{position:fixed;right:0;top:0;bottom:0;width:380px;background:var(--panel);border-left:1px solid var(--line);padding:22px;transform:translateX(100%);transition:transform .25s;z-index:8;overflow:auto;box-shadow:var(--shadow)}
+#help.open{transform:none}#helpOut{white-space:pre-wrap;margin-top:12px;font-size:14px}
+.q{cursor:pointer;color:var(--acc2);font-weight:500;display:block;margin:6px 0;font-size:13px}
+canvas,svg{max-width:100%}
+.src{font-size:12px;color:var(--mute);margin-top:8px}
+
+.app{display:flex;min-height:100vh}
+#side{width:240px;flex:none;position:sticky;top:0;height:100vh;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px;gap:4px}
+.brand{display:flex;align-items:center;gap:11px;padding:0 8px 18px}
+#side .tab{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:12px;cursor:pointer;font-weight:600;font-size:14px;color:var(--mute);transition:all .15s}
+#side .tab:hover{background:color-mix(in srgb,var(--acc) 7%,transparent);color:var(--ink)}
+#side .tab.on{background:var(--acc);color:var(--panel)}
+#side .tab svg{width:18px;height:18px;flex:none}
+.sidesp{flex:1}
+.sidebox{padding:10px 8px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);margin-top:8px}
+.content{flex:1;min-width:0}
+@media(max-width:820px){.app{flex-direction:column}#side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px}.brand{padding:0 8px 0 0}.sidesp{display:none}.sidebox{border:0;margin:0;flex-direction:row;padding:0}main{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside id="side">
+  <div class="brand"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 4 8-10"/><path d="M15 5h5v5"/></svg></div><h1>Marketscope<small>FMKT 256</small></h1></div>
+  <div id="tabs"></div>
+  <div class="sidesp"></div>
+  <div class="sidebox"><span id="status" class="pill">connecting to data…</span><button id="helpBtn">Help / Ask</button></div>
+  <div id="tabsBottom" style="margin-top:6px"></div>
+</aside>
+<div class="content"><main id="view"></main></div>
+</div>
+<div id="toast"></div>
+<aside id="help">
+  <div style="display:flex;justify-content:space-between"><b style="font-family:var(--font);font-size:18px">Help</b><button id="helpX">Close</button></div>
+  <p class="note">Ask anything about using the tools or the finance behind them. Runs in your browser — no login or API key.</p>
+  <input id="helpQ" type="text" placeholder="e.g. how does a rate hike hit utilities?" style="width:100%">
+  <div class="tools"><button class="pri" id="helpGo">Ask</button></div>
+  <div id="helpSugg"></div><div id="helpOut"></div>
+</aside>
+
+<script>
+/* ---------- state & helpers ---------- */
+const $=s=>document.querySelector(s);
+const fmt=(n,d=1)=>Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),6000)}
+function parseCSV(t){const L=t.trim().split(/\r?\n/).map(l=>l.split(',').map(x=>x.trim()));const h=L.shift();return L.map(r=>Object.fromEntries(h.map((k,i)=>[k,isNaN(r[i])||r[i]===''?r[i]:+r[i]])))}
+function toCSV(rows){const h=Object.keys(rows[0]);return [h.join(','),...rows.map(r=>h.map(k=>r[k]).join(','))].join('\n')}
+function dl(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click()}
+function importBox(onData){const i=document.createElement('input');i.type='file';i.accept='.csv';i.onchange=()=>i.files[0].text().then(t=>{try{onData(parseCSV(t));toast('Imported '+i.files[0].name)}catch(e){toast('Could not parse CSV')}});i.click()}
+
+/* ---------- live data: US Treasury FiscalData (public, CORS-enabled, no key) ---------- */
+let rates=store.get('rates',null);
+async function pullRates(){
+  const u='https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?filter=security_desc:in:(Treasury%20Bills,Treasury%20Notes,Treasury%20Bonds)&sort=-record_date&page[size]=60';
+  try{const r=await fetch(u);const j=await r.json();rates=j.data.map(d=>({date:d.record_date,security:d.security_desc,rate:+d.avg_interest_rate_amt}));
+    store.set('rates',rates);if(!live)setStatus('Live · Treasury '+rates[0].date,true);return true}
+  catch(e){return false}
+}
+let live=null;
+async function loadLive(){
+  try{const r=await fetch('data.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(!j.updated)throw 0;live=j;
+    if(j.screen&&j.screen.length&&!store.get('screen',null)){screenData=j.screen;usingSample.screen=false}
+    if(j.sect&&j.sect.length&&!store.get('sect',null)){sectData=j.sect;usingSample.sect=false}
+    const d=new Date(j.updated);setStatus('Live · '+d.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),true);
+    if(cur==='screener'&&$('#tbl')){drawTbl(true);const s=$('#srcpill');if(s)s.innerHTML=sampleTag('screen')}else if(cur==='sim'&&$('#cv'))drawSim();else if(cur==='viz'&&$('#sv')){drawViz();drawOil()}
+  }catch(e){if(!rates)setStatus('Sample data (live feed not connected)',false)}
+}
+function setStatus(t,ok){const s=$('#status');s.textContent=t;s.className='pill '+(ok?'live':'warn')}
+function latestRate(sec){const r=(rates||[]).find(x=>x.security===sec);return r?r.rate:null}
+
+/* ---------- datasets (SAMPLE — replace with CSV import) ---------- */
+const SAMPLE_SCREEN=`ticker,sector,price,pe,roe,debt_equity,div_yield,mom_1y
+AAA,Technology,182.4,28.1,31.0,0.45,0.6,18.2
+BBB,Technology,96.7,19.4,22.5,0.30,1.1,9.8
+CCC,Utilities,64.2,17.9,9.1,1.60,3.8,-2.4
+DDD,Utilities,88.1,19.8,8.4,1.45,3.4,1.9
+EEE,Energy,71.5,9.6,15.2,0.55,3.9,6.7
+FFF,Energy,45.3,7.8,12.7,0.70,4.6,-8.1
+GGG,Financials,148.0,12.2,13.9,1.10,2.2,14.5
+HHH,Financials,52.6,9.9,10.8,1.25,3.1,4.0
+III,Real Estate,38.9,31.5,4.2,1.30,5.2,-11.7
+JJJ,Health Care,121.3,16.8,18.4,0.60,1.9,3.3
+KKK,Consumer Disc.,210.7,24.3,26.1,0.95,0.8,12.6
+LLL,Industrials,133.2,20.5,17.7,0.80,1.5,7.4`;
+const SAMPLE_SECT=`sector,debt_ebitda,floating_share,interest_cover,equity_duration
+Technology,0.9,0.20,18.0,9.0
+Utilities,5.2,0.25,2.9,14.0
+Energy,1.6,0.30,8.5,6.5
+Financials,3.0,0.60,4.0,5.0
+Real Estate,6.8,0.45,2.4,15.0
+Health Care,2.0,0.25,9.0,8.0
+Consumer Disc.,2.4,0.35,6.5,9.5
+Industrials,2.2,0.35,7.0,8.0`;
+const SAMPLE_FLOW=`origin,destination,period,mbd
+Gulf,Asia,before,12.0
+Gulf,Europe,before,2.4
+Gulf,US,before,0.8
+Atlantic Basin,Europe,before,3.1
+Atlantic Basin,Asia,before,1.6
+Russia,Europe,before,2.0
+Russia,Asia,before,3.2
+Gulf,Asia,during,9.5
+Gulf,Europe,during,1.4
+Gulf,US,during,0.5
+Atlantic Basin,Europe,during,4.3
+Atlantic Basin,Asia,during,3.0
+Russia,Europe,during,0.6
+Russia,Asia,during,4.6`;
+let screenData=store.get('screen',null)||parseCSV(SAMPLE_SCREEN);
+let sectData=store.get('sect',null)||parseCSV(SAMPLE_SECT);
+let flowData=store.get('flow',null)||parseCSV(SAMPLE_FLOW);
+let usingSample={screen:!store.get('screen',null),sect:!store.get('sect',null),flow:!store.get('flow',null)};
+const sampleTag=k=>usingSample[k]?'<span class="pill warn">illustrative sample data — import real CSV</span>':'<span class="pill live">your data</span>';
+
+/* ---------- tabs (drag to reorder) ---------- */
+const MODS={about:{t:'How it works',r:renderAbout},screener:{t:'Screener',r:renderScreener},sim:{t:'Rate Simulator',r:renderSim},viz:{t:'Flow Map',r:renderViz}};
+const order=['screener','sim','viz'];let cur=store.get('cur3','screener');
+function renderAbout(){
+  const go=k=>`<a href="#" data-go="${k}" class="go">${MODS[k].t} &rarr;</a>`;
+  $('#view').innerHTML=`<div>
+  <div class="hero"><h2>See the market<br>before it moves.</h2><p>Marketscope helps you spot stocks worth a look, test what interest-rate moves could do to different industries, and watch how oil flows shift when something big happens.</p></div>
+  <div class="grid3"><div class="card"><div class="step">1</div><h2>${go('screener')}</h2><p>You tell it what a "good" stock means to you — say, not too expensive, solid profits, not too much debt. It highlights every company that fits and sorts the list however you like.</p>
+  <p><b>How to use it:</b> change the boxes on the left, watch the highlighted rows update. Tick <i>Alert me</i> and you get a pop-up the moment a new company starts fitting your rules.</p></div>
+  <div class="card"><div class="step">2</div><h2>${go('sim')}</h2><p>Slide the bar to pretend interest rates go up or down. The chart shows which industries get hurt or helped, and how comfortably companies can still pay their interest bills.</p>
+  <p><b>How to use it:</b> drag the slider or hit a preset (+50, +200…). Red bars = likely loses, green = likely gains. Rate-sensitive sectors like utilities and real estate usually swing the most.</p></div>
+  <div class="card"><div class="step">3</div><h2>${go('viz')}</h2><p>A picture of where oil goes: producers on the left, buyers on the right, thicker band = more barrels. Compare <i>before</i> and <i>during</i> an event, or flip to <i>Change</i> to see who gained and lost supply.</p></div></div><div style="height:20px"></div>
+  <div class="card"><h2>Where the data comes from</h2>
+  <p><b>Live:</b> interest-rate figures are pulled automatically from the U.S. Treasury's public data service when you open the site, and re-checked every 15 minutes. The badge at the top right tells you the date of the latest pull.</p>
+  <p><b>Yours:</b> stock, industry and oil-flow numbers come from files you load in. Every tool has an <i>Import CSV</i> button (and a <i>Template</i> button showing the exact layout). Grab data from Yahoo Finance, FRED, the EIA or your Bloomberg terminal, drop it in, and everything — tables, charts, alerts — refreshes instantly. Importing a newer file later is how you "update" history.</p>
+  <p><b>Heads up:</b> the numbers it starts with are made-up examples so you can try things right away. A yellow tag on each tool tells you when you're still on examples; it turns green once you import real data.</p></div>
+  <div class="card"><h2>Good to know</h2><p>Nothing to sign into, no accounts. Your imports are saved in your own browser only. Change the look with <i>Theme</i> (top right), drag the tabs into any order, and press <i>Help / Ask</i> any time to ask a question in your own words.</p></div></div>`;
+  document.querySelectorAll('[data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();cur=a.dataset.go;store.set('cur3',cur);drawTabs();MODS[cur].r()});
+}
+const ICO={screener:'<path d="M3 5h18M6 12h12M10 19h4"/>',sim:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',viz:'<path d="M3 6c6 0 6 12 12 12h6M3 18c6 0 6-12 12-12h6"/>',about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'};
+function tabEl(k){const d=document.createElement('div');d.className='tab'+(k===cur?' on':'');d.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICO[k]+'</svg>'+MODS[k].t;d.onclick=()=>{cur=k;store.set('cur3',k);drawTabs();MODS[k].r()};return d}
+function drawTabs(){const n=$('#tabs'),m=$('#tabsBottom');n.innerHTML='';m.innerHTML='';order.forEach(k=>n.appendChild(tabEl(k)));m.appendChild(tabEl('about'))}
+
+/* ---------- 1. SCREENER ---------- */
+let crit=store.get('crit',{pe_max:25,roe_min:12,de_max:1.5,dy_min:0,mom_min:-100}),alertOn=store.get('alertOn',false),prevHits=new Set(),sortK='ticker',sortD=1,ticking=null;
+function passes(r){return r.pe<=crit.pe_max&&r.roe>=crit.roe_min&&r.debt_equity<=crit.de_max&&r.div_yield>=crit.dy_min&&r.mom_1y>=crit.mom_min}
+function renderScreener(){
+  $('#view').innerHTML=`<div class="row"><div class="col" style="max-width:300px"><div class="card"><h2>Criteria</h2><div class="note">Flags names that meet every filter.</div>
+  ${[['pe_max','Max P/E',1],['roe_min','Min ROE %',1],['de_max','Max debt/equity',.05],['dy_min','Min dividend yield %',.1],['mom_min','Min 1-yr momentum %',1]].map(([k,l,s])=>`<label>${l}</label><input type="number" step="${s}" data-k="${k}" value="${crit[k]}" style="width:100%">`).join('')}
+  <label><input type="checkbox" id="al" ${alertOn?'checked':''}> Alert me when a new name starts passing</label></div>
+  <div class="card"><h2>Data</h2><span id="srcpill">${sampleTag('screen')}</span><div class="tools"><button id="imp">Import CSV</button><button id="exp">Download template</button><button id="ref">Refresh live rates</button><button id="rst">Switch back to live data</button></div>
+  <div class="note">CSV columns: ticker, sector, price, pe, roe, debt_equity, div_yield, mom_1y. Importing replaces the table and re-runs alerts. Live data refreshes by itself every few minutes; importing your own file overrides it until you switch back.</div></div></div>
+  <div class="col"><div class="kpis" id="kp"></div><div class="card"><h2>Results <span id="cnt" class="pill"></span></h2><div id="tbl"></div><div class="src" id="rateline"></div></div></div></div>`;
+  document.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{crit[i.dataset.k]=+i.value;store.set('crit',crit);drawTbl(false)});
+  $('#al').onchange=e=>{alertOn=e.target.checked;store.set('alertOn',alertOn);if(alertOn&&window.Notification&&Notification.permission==='default')Notification.requestPermission()};
+  $('#imp').onclick=()=>importBox(d=>{screenData=d;usingSample.screen=false;store.set('screen',d);drawTbl(true)});
+  $('#exp').onclick=()=>dl('screener_template.csv',SAMPLE_SCREEN);
+  $('#ref').onclick=async()=>{await pullRates();drawTbl(false)};
+  $('#rst').onclick=()=>{try{localStorage.removeItem('screen')}catch(e){}usingSample.screen=!live;if(live&&live.screen)screenData=live.screen;else screenData=parseCSV(SAMPLE_SCREEN);renderScreener();toast('Using live data')};
+  prevHits=new Set(screenData.filter(passes).map(r=>r.ticker));drawTbl(false);
+}
+function drawTbl(check){
+  const rows=[...screenData].sort((a,b)=>(a[sortK]>b[sortK]?1:-1)*sortD);const hits=new Set(screenData.filter(passes).map(r=>r.ticker));
+  if(check&&alertOn)hits.forEach(t=>{if(!prevHits.has(t)){const m=t+' now passes your screen';toast(m);if(window.Notification&&Notification.permission==='granted')new Notification('Marketscope',{body:m})}});
+  prevHits=hits;if(!$('#tbl'))return;{const m=screenData.filter(r=>hits.has(r.ticker)),av=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,top=[...m].sort((a,b)=>b.mom_1y-a.mom_1y)[0];$('#kp').innerHTML=`<div class="kpi"><span>Passing</span><b>${m.length}<i> / ${screenData.length}</i></b></div><div class="kpi"><span>Avg P/E (matches)</span><b>${m.length?fmt(av(m.map(r=>r.pe))):'–'}</b></div><div class="kpi"><span>Avg yield</span><b>${m.length?fmt(av(m.map(r=>r.div_yield)))+'%':'–'}</b></div><div class="kpi"><span>Top momentum</span><b>${top?top.ticker:'–'}<i> ${top?fmt(top.mom_1y)+'%':''}</i></b></div>`}$('#cnt').textContent=hits.size+' of '+screenData.length+' pass';
+  const cols=['ticker','sector','price','pe','roe','debt_equity','div_yield','mom_1y'];
+  $('#tbl').innerHTML='<table><tr>'+cols.map(c=>`<th class="${c==='sector'?'l':''}" data-s="${c}">${c.replace('_',' ')}</th>`).join('')+'</tr>'+rows.map(r=>`<tr class="${hits.has(r.ticker)?'hit':''}">`+cols.map(c=>`<td class="${c==='sector'?'l':''} ${c==='mom_1y'?(r[c]>=0?'up':'dn'):''}">${typeof r[c]==='number'?fmt(r[c],c==='price'?2:1):r[c]}</td>`).join('')+'</tr>').join('')+'</table>';
+  document.querySelectorAll('th[data-s]').forEach(th=>th.onclick=()=>{sortD=sortK===th.dataset.s?-sortD:1;sortK=th.dataset.s;drawTbl(false)});
+  const t=latestRate('Treasury Notes');$('#rateline').textContent=t?`Context: avg interest rate on Treasury Notes ${t}% (US Treasury FiscalData).`:'Press "Refresh live rates" to pull Treasury context.';{const t10=live&&live.rates&&live.rates.DGS10&&live.rates.DGS10.slice(-1)[0];if(t10)$('#rateline').textContent+=`  ·  10-yr Treasury yield ${t10[1]}% (${t10[0]})`}
+}
+
+/* ---------- 2. SIMULATOR ---------- */
+let shock=store.get('shock',100);
+function renderSim(){
+  $('#view').innerHTML=`<div class="row"><div class="col" style="max-width:320px"><div class="card"><h2>Scenario</h2><div class="note">Parallel shift in rates, applied to each sector's balance-sheet profile.</div>
+  <label>Rate change: <b id="sv"></b> bp</label><input type="range" id="sl" min="-300" max="300" step="25" value="${shock}" style="width:100%">
+  <div class="tools"><button data-b="-200">−200</button><button data-b="-50">−50</button><button data-b="50">+50</button><button data-b="200">+200</button></div>
+  <div class="note">Mechanics: ΔInterest ≈ floating share × debt × Δrate; new coverage = EBIT ÷ (interest + Δinterest); price effect ≈ −duration × Δrate (first-order, ignores convexity and earnings effects).</div></div>
+  <div class="card"><h2>Data</h2>${sampleTag('sect')}<div class="tools"><button id="imp">Import CSV</button><button id="exp">Template</button><button id="ref">Pull live base rate</button></div>
+  <div class="note">Columns: sector, debt_ebitda, floating_share, interest_cover, equity_duration. With live data, debt/EBITDA comes from company filings via Yahoo Finance; floating-rate share and equity duration are stated assumptions. <span id="base"></span></div></div></div>
+  <div class="col"><div class="kpis" id="kp"></div><div class="card"><h2>Estimated impact by sector</h2><canvas id="cv" width="700" height="320"></canvas><div id="st"></div></div></div></div>`;
+  const go=()=>{shock=+$('#sl').value;store.set('shock',shock);$('#sv').textContent=(shock>0?'+':'')+shock;drawSim()};
+  $('#sl').oninput=go;document.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{$('#sl').value=b.dataset.b;go()});
+  $('#imp').onclick=()=>importBox(d=>{sectData=d;usingSample.sect=false;store.set('sect',d);drawSim()});$('#exp').onclick=()=>dl('sector_template.csv',SAMPLE_SECT);
+  $('#ref').onclick=async()=>{await pullRates();drawSim()};go();
+}
+function simRows(){return sectData.map(s=>{const dI=s.floating_share*s.debt_ebitda*(shock/10000);/* ΔInterest as share of EBITDA-scale */
+  const baseInt=1/s.interest_cover;const newCover=1/(baseInt+dI);const px=-s.equity_duration*(shock/100);return{sector:s.sector,cover0:s.interest_cover,cover1:newCover,px}})}
+function drawSim(){
+  const r=simRows(),t10=live&&live.rates&&live.rates.DGS10&&live.rates.DGS10.slice(-1)[0],b=t10?t10[1]:latestRate('Treasury Notes');$('#base').textContent=b?`Live base: ${t10?'10-yr Treasury yield':'Treasury Notes avg rate'} ${b}% → scenario ${fmt(b+shock/100,2)}%.`:'';
+  {const s=[...r].sort((a,b)=>a.px-b.px),av=r.reduce((t,a)=>t+a.px,0)/r.length;$('#kp').innerHTML=`<div class="kpi"><span>Scenario</span><b>${shock>0?'+':''}${shock} bp</b></div><div class="kpi"><span>Hit hardest</span><b>${s[0].sector}<i> ${fmt(s[0].px)}%</i></b></div><div class="kpi"><span>Best placed</span><b>${s[s.length-1].sector}<i> ${fmt(s[s.length-1].px)}%</i></b></div><div class="kpi"><span>Avg sector</span><b class="${av>=0?'up':'dn'}">${fmt(av)}%</b></div>`}const c=$('#cv'),x=c.getContext('2d'),cs=getComputedStyle(document.body);x.clearRect(0,0,c.width,c.height);
+  const W=c.width,H=c.height,m=130,pad=36,bh=(H-20)/r.length,lo=Math.min(0,...r.map(a=>a.px)),hi=Math.max(0,...r.map(a=>a.px)),span=(hi-lo)||1,sc=(W-m-pad)/span,x0=m+(-lo)*sc;
+  x.font='600 13px '+cs.getPropertyValue('--sans');x.textBaseline='middle';
+  r.forEach((a,i)=>{const y=10+i*bh,w=a.px*sc,bx=Math.min(x0,x0+w),bw=Math.abs(w);x.fillStyle=cs.getPropertyValue('--mute');x.textAlign='right';x.fillText(a.sector,m-12,y+bh/2);
+    x.fillStyle=cs.getPropertyValue(a.px>=0?'--up':'--dn');x.beginPath();x.roundRect(bx,y+6,Math.max(bw,2),bh-12,6);x.fill();
+    const t=fmt(a.px)+'%',inside=bw>64;x.fillStyle=inside?'#fff':cs.getPropertyValue('--ink');
+    if(inside){x.textAlign=a.px>=0?'right':'left';x.fillText(t,a.px>=0?x0+w-8:x0+w+8,y+bh/2)}else{x.textAlign=a.px>=0?'left':'right';x.fillText(t,a.px>=0?x0+w+8:x0+w-8,y+bh/2)}});
+  x.strokeStyle=cs.getPropertyValue('--line');x.lineWidth=1.5;x.beginPath();x.moveTo(x0,4);x.lineTo(x0,H-4);x.stroke();
+  $('#st').innerHTML='<table style="margin-top:10px"><tr><th>sector</th><th>coverage now</th><th>coverage after</th><th>est. price effect</th></tr>'+r.map(a=>`<tr><td>${a.sector}</td><td>${fmt(a.cover0)}x</td><td class="${a.cover1<a.cover0?'dn':'up'}">${fmt(a.cover1)}x</td><td class="${a.px>=0?'up':'dn'}">${fmt(a.px)}%</td></tr>`).join('')+'</table>';
+}
+
+/* ---------- 3. FLOW MAP ---------- */
+let period='before';
+function renderViz(){
+  $('#view').innerHTML=`<div class="card"><h2>Oil flows: origin → destination</h2><div class="tools"><button data-p="before">Before</button><button data-p="during">During</button><button data-p="delta">Change</button><span style="width:20px"></span>${sampleTag('flow')}<button id="imp">Import CSV</button><button id="exp">Template</button></div>
+  <svg id="sv" viewBox="0 0 900 385"></svg><div class="note">Band width = volume (million bbl/day). CSV columns: origin, destination, period (before/during), mbd. Use any scenario — Gulf disruption, Russian diesel rerouting, etc. The built-in numbers are placeholders to show the tool; replace with IEA/EIA/Kpler-style data for your write-up.</div></div>
+  <div class="card"><h2>Oil prices, last 6 months</h2><div class="note" id="oilnote"></div><canvas id="oil" width="900" height="260"></canvas></div>`;
+  document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{period=b.dataset.p;drawViz()});
+  $('#imp').onclick=()=>importBox(d=>{flowData=d;usingSample.flow=false;store.set('flow',d);renderViz()});$('#exp').onclick=()=>dl('flow_template.csv',SAMPLE_FLOW);drawViz();drawOil();
+}
+function drawViz(){
+  const get=(o,d,p)=>(flowData.find(f=>f.origin===o&&f.destination===d&&f.period===p)||{mbd:0}).mbd;
+  const O=[...new Set(flowData.map(f=>f.origin))],D=[...new Set(flowData.map(f=>f.destination))];
+  const val=(o,d)=>period==='delta'?get(o,d,'during')-get(o,d,'before'):get(o,d,period);
+  const cs=getComputedStyle(document.body),g=k=>cs.getPropertyValue(k).trim(),ink=g('--ink'),mute=g('--mute');
+  const pal=[g('--acc'),g('--acc2'),'#2aa6a0','#d9a21b','#7a5cc9','#4f8fd6'];
+  const oT=O.map(o=>D.reduce((s,d)=>s+Math.abs(val(o,d)),0)),dT=D.map(d=>O.reduce((s,o)=>s+Math.abs(val(o,d)),0));
+  const gap=16,H=300,top=30,k=Math.min((H-gap*(O.length-1))/Math.max(oT.reduce((a,b)=>a+b,0),1),(H-gap*(D.length-1))/Math.max(dT.reduce((a,b)=>a+b,0),1));
+  const xl=210,xr=690,nw=12;let oy=[],dy=[],y=top;O.forEach((o,i)=>{oy[i]=y;y+=oT[i]*k+gap});y=top;D.forEach((d,i)=>{dy[i]=y;y+=dT[i]*k+gap});
+  const oc=O.map(()=>0),dc=D.map(()=>0);let s='';
+  O.forEach((o,i)=>D.forEach((d,j)=>{const v=val(o,d),w=Math.abs(v)*k;if(!w)return;const a0=oy[i]+oc[i],b0=dy[j]+dc[j];oc[i]+=w;dc[j]+=w;
+    const col=period==='delta'?(v>=0?g('--up'):g('--dn')):pal[i%pal.length],mx=(xl+nw+xr)/2;
+    s+=`<path d="M${xl+nw} ${a0} C ${mx} ${a0}, ${mx} ${b0}, ${xr} ${b0} L ${xr} ${b0+w} C ${mx} ${b0+w}, ${mx} ${a0+w}, ${xl+nw} ${a0+w} Z" fill="${col}" fill-opacity=".42"><title>${o} → ${d}: ${fmt(v)} mb/d</title></path>`}));
+  O.forEach((o,i)=>{s+=`<rect x="${xl}" y="${oy[i]}" width="${nw}" height="${Math.max(oT[i]*k,3)}" rx="3" fill="${pal[i%pal.length]}"/><text x="${xl-12}" y="${oy[i]+Math.max(oT[i]*k,3)/2-3}" text-anchor="end" fill="${ink}" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="14">${o}</text><text x="${xl-12}" y="${oy[i]+Math.max(oT[i]*k,3)/2+13}" text-anchor="end" fill="${mute}" font-family="Inter,system-ui,sans-serif" font-size="12">${fmt(oT[i])} mb/d</text>`});
+  D.forEach((d,j)=>{s+=`<rect x="${xr}" y="${dy[j]}" width="${nw}" height="${Math.max(dT[j]*k,3)}" rx="3" fill="${ink}" fill-opacity=".75"/><text x="${xr+nw+12}" y="${dy[j]+Math.max(dT[j]*k,3)/2-3}" fill="${ink}" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="14">${d}</text><text x="${xr+nw+12}" y="${dy[j]+Math.max(dT[j]*k,3)/2+13}" fill="${mute}" font-family="Inter,system-ui,sans-serif" font-size="12">${fmt(dT[j])} mb/d</text>`});
+  s+=`<text x="450" y="372" text-anchor="middle" fill="${mute}" font-family="Inter,system-ui,sans-serif" font-size="12">${period==='delta'?'Change in volume (green = more supply, red = less)':'Showing: '+period+' period'}</text>`;
+  $('#sv').innerHTML=s;
+}
+
+function drawOil(){
+  const c=$('#oil');if(!c)return;const x=c.getContext('2d'),cs=getComputedStyle(document.body),g=k=>cs.getPropertyValue(k).trim();x.clearRect(0,0,c.width,c.height);
+  const o=live&&live.oil;if(!o||(!o.wti&&!o.brent)){$('#oilnote').textContent='Appears once the live feed is connected (daily prices from FRED).';return}
+  const S=[['WTI',o.wti,g('--acc')],['Brent',o.brent,g('--acc2')]].filter(s=>s[1]&&s[1].length);const all=S.flatMap(s=>s[1].map(p=>p[1])),lo=Math.min(...all)-3,hi=Math.max(...all)+3,L=50,R=c.width-20,T=30,B=c.height-26;
+  x.font='12px '+g('--sans');x.strokeStyle=g('--line');x.fillStyle=g('--mute');x.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=T+(B-T)*i/4,v=hi-(hi-lo)*i/4;x.beginPath();x.moveTo(L,y);x.lineTo(R,y);x.stroke();x.textAlign='right';x.fillText('$'+v.toFixed(0),L-8,y+4)}
+  S.forEach(([n,d,col],k)=>{x.strokeStyle=col;x.lineWidth=2.4;x.beginPath();d.forEach((p,i)=>{const px=L+(R-L)*i/(d.length-1),py=B-(B-T)*(p[1]-lo)/(hi-lo);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.fillStyle=col;x.textAlign='left';x.fillText(n+' $'+d[d.length-1][1].toFixed(2),L+10+k*130,12)});
+  const d0=S[0][1];x.fillStyle=g('--mute');x.textAlign='left';x.fillText(d0[0][0],L,B+16);x.textAlign='right';x.fillText(d0[d0.length-1][0],R,B+16);
+  $('#oilnote').textContent='Daily spot prices, USD per barrel (FRED / EIA).';
+}
+
+/* ---------- help ---------- */
+const KB=[
+ ['screener|filter|flag|criteria','Screener: set max P/E, min ROE etc. Rows passing every filter are highlighted. Tick "Alert me" and you get an on-screen (and browser) notification when a new name starts passing after a data update.'],
+ ['import|csv|historical|upload','Every tool has Import CSV and a Template button. Download the template, fill it with your data (e.g. exported from Yahoo Finance, FRED, EIA, Bloomberg), and import. Data is saved in your browser, so re-importing newer files updates everything and re-runs alerts.'],
+ ['real.?time|live|update|refresh','Live: prices, fundamentals, Treasury yields and oil prices are collected automatically every 15 minutes from public sources (Yahoo Finance, FRED, US Treasury) and the page refreshes itself. You can also import your own CSV; the site re-reads the latest data every few minutes and your alerts fire when a new name qualifies.'],
+ ['rate|hike|cut|interest|simulator|bp','Simulator: a rate shock raises interest costs in proportion to floating-rate debt share and leverage, lowering coverage; long-duration equities (utilities, REITs, growth tech) lose more value because distant cash flows are discounted harder. Banks can gain from wider margins but carry credit risk.'],
+ ['utilit|reit|real estate','Utilities and REITs are bond proxies: high leverage, long duration, high payout, so they usually fall most when rates rise.'],
+ ['duration','Equity duration ≈ how sensitive price is to a 1% discount-rate move. Estimated price effect = −duration × Δrate (first order).'],
+ ['oil|flow|map|diesel|russia|gulf','Flow Map: bands show barrels per day from origin to destination. Compare Before/During, or the Change view. Replace the placeholder CSV with real trade-flow data.'],
+ ['sidebar|menu|navigate|tab|where','Use the sidebar on the left to switch between the Screener, Rate Simulator and Flow Map. "How it works" is at the very bottom of the sidebar.'],
+ ['coverage|interest cover','Interest coverage = EBIT ÷ interest expense. Below ~2x is stressed.']];
+function ask(q){const m=KB.filter(([k])=>new RegExp(k,'i').test(q));return m.length?m.map(x=>x[1]).join('\n\n'):'I can answer questions about the three tools, CSV import, live updates, and rate/oil-flow concepts. Try: "how do I import data?", "why do utilities fall when rates rise?"'}
+$('#helpBtn').onclick=()=>$('#help').classList.add('open');$('#helpX').onclick=()=>$('#help').classList.remove('open');
+$('#helpGo').onclick=()=>$('#helpOut').textContent=ask($('#helpQ').value);$('#helpQ').onkeydown=e=>{if(e.key==='Enter')$('#helpGo').click()};
+$('#helpSugg').innerHTML=['How do I import data?','Is it real-time?','Why do utilities fall when rates rise?','How do alerts work?'].map(q=>`<span class="q">${q}</span>`).join('');
+document.querySelectorAll('.q').forEach(e=>e.onclick=()=>{$('#helpQ').value=e.textContent;$('#helpGo').click()});
+
+/* ---------- boot ---------- */
+
+drawTabs();MODS[cur].r();loadLive();pullRates().then(()=>{if(cur==='sim')drawSim()});
+setInterval(()=>{pullRates();loadLive()},5*60*1000);
+</script>
+</body>
+</html>
