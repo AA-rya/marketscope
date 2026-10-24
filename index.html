@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Marketscope — FMKT 256</title>
 <style>
-:root{--bg:#f7f2ea;--panel:#fffdf9;--ink:#2a2118;--mute:#7b6f60;--line:#ebe2d3;--acc:#2f5d50;--acc2:#d9663b;--up:#2f7a55;--dn:#c2452f;--shadow:0 1px 2px rgba(42,33,24,.05),0 8px 24px rgba(42,33,24,.07);--font:"Inter","SF Pro Display",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--sans:"Inter",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+:root{--bg:#f6ece4;--panel:#fffaf7;--ink:#3a2a2c;--mute:#8a7273;--line:#ecdcd3;--acc:#c4607a;--acc2:#a07a5c;--up:#4f8a6a;--dn:#c0455a;--shadow:0 1px 2px rgba(120,70,70,.05),0 8px 24px rgba(160,100,100,.09);--font:"Inter","SF Pro Display",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;--sans:"Inter",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
 header{display:flex;align-items:center;gap:14px;padding:16px 32px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .logo{width:34px;height:34px;border-radius:10px;background:var(--acc);display:grid;place-items:center;color:var(--panel)}
@@ -253,7 +253,7 @@ function drawViz(){
   const O=[...new Set(flowData.map(f=>f.origin))],D=[...new Set(flowData.map(f=>f.destination))];
   const val=(o,d)=>period==='delta'?get(o,d,'during')-get(o,d,'before'):get(o,d,period);
   const cs=getComputedStyle(document.body),g=k=>cs.getPropertyValue(k).trim(),ink=g('--ink'),mute=g('--mute');
-  const pal=[g('--acc'),g('--acc2'),'#2aa6a0','#d9a21b','#7a5cc9','#4f8fd6'];
+  const pal=[g('--acc'),g('--acc2'),'#e3a0b0','#d8b99a','#8d5a6b','#b9a08c'];
   const oT=O.map(o=>D.reduce((s,d)=>s+Math.abs(val(o,d)),0)),dT=D.map(d=>O.reduce((s,o)=>s+Math.abs(val(o,d)),0));
   const gap=16,H=300,top=30,k=Math.min((H-gap*(O.length-1))/Math.max(oT.reduce((a,b)=>a+b,0),1),(H-gap*(D.length-1))/Math.max(dT.reduce((a,b)=>a+b,0),1));
   const xl=210,xr=690,nw=12;let oy=[],dy=[],y=top;O.forEach((o,i)=>{oy[i]=y;y+=oT[i]*k+gap});y=top;D.forEach((d,i)=>{dy[i]=y;y+=dT[i]*k+gap});
