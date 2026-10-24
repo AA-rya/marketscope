@@ -77,18 +77,23 @@ def get(url, timeout=40):
 
 
 def eia_table(url):
-    p = Rows(); p.feed(get(url)); p.close()
-    months, data = [], {}
-    for r in p.rows:
-        texts = [t for _, t in r]
-        if not months and sum(bool(re.fullmatch(r"[A-Z][a-z]{2}-\d\d", t)) for t in texts) >= 3:
-            months = [t for t in texts if re.fullmatch(r"[A-Z][a-z]{2}-\d\d", t)]
-        if r and r[0][0] == "DataStub" and months:
-            vals = []
-            for _, t in r[1:1 + len(months)]:
-                t = t.replace(",", "")
-                vals.append(float(t) if re.fullmatch(r"-?\d+(\.\d+)?", t) else 0.0)
-            data[r[0][1]] = vals
+    """Parse an EIA dnav table: months from the header, one row per country (name in a nested DataStub1 cell)."""
+    t = get(url)
+    months = re.findall(r'class="Series\d*"[^>]*>\s*([A-Z][a-z]{2}-\d\d)\s*<', t)
+    seen = []; [seen.append(m) for m in months if m not in seen]; months = seen
+    data = {}
+    for chunk in re.split(r'<tr[^>]*class="DataRow"', t)[1:]:
+        m = re.search(r'class="DataStub1?"[^>]*>(?:\s*<[^>]+>)*\s*([^<]+?)\s*<', chunk)
+        nm = re.search(r'class="DataStub1"[^>]*>\s*(?:<[^>]+>\s*)*([^<]*?)\s*</', chunk)
+        name = (nm or m).group(1).strip() if (nm or m) else None
+        if not name: continue
+        cells = re.findall(r'<td[^>]*class="(?:DataB|Current\d*|Data\d*)"[^>]*>\s*([^<]*?)\s*</td>', chunk)
+        vals = []
+        for c in cells[:len(months)]:
+            c = c.replace(",", "").replace("&nbsp;", "").strip()
+            vals.append(float(c) if re.fullmatch(r"-?\d+(\.\d+)?", c) else 0.0)
+        vals += [0.0] * (len(months) - len(vals))
+        data[name] = vals
     return months, data
 
 
