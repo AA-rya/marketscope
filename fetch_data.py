@@ -161,7 +161,7 @@ def main():
     if os.path.exists("data.json"):
         try: old = json.load(open("data.json"))
         except Exception: pass
-    for k in ("rates", "oil", "market", "curve", "flow", "screen", "sect"): out[k] = old.get(k)
+    for k in ("rates", "oil", "market", "curve", "flow", "screen", "sect", "hist", "hd", "news"): out[k] = old.get(k)
     out["rates"], out["oil"] = out["rates"] or {}, out["oil"] or {}
 
     # yields + oil history
@@ -189,6 +189,20 @@ def main():
             except Exception as e: print("quote fail", sym, e)
         if len(board) >= 6: out["market"] = board
     except Exception as e: print("market fail", e)
+
+    # headlines
+    try:
+        items = []
+        for sym in ("^GSPC", "^IXIC", "CL=F"):
+            for n in (yf.Ticker(sym).news or [])[:8]:
+                c = n.get("content") or n
+                title = c.get("title"); link = ((c.get("canonicalUrl") or c.get("clickThroughUrl") or {}).get("url")) or c.get("link")
+                pub = (c.get("provider") or {}).get("displayName") or c.get("publisher") or ""
+                when = c.get("pubDate") or (dt.datetime.fromtimestamp(c["providerPublishTime"], dt.timezone.utc).isoformat() if c.get("providerPublishTime") else "")
+                if title and link and not any(i["url"] == link for i in items): items.append({"title": title, "url": link, "src": pub, "t": when})
+        items.sort(key=lambda i: i["t"], reverse=True)
+        if len(items) >= 3: out["news"] = items[:14]
+    except Exception as e: print("news fail", e); DIAG.append("news: " + repr(e)[:200])
 
     # full Treasury curve
     try: out["curve"] = build_curve()
@@ -218,7 +232,10 @@ def main():
         json.dump(fund, open("fundamentals.json", "w"), separators=(",", ":"))
     try:
         px = yf.download(UNIVERSE, period="1y", interval="1d", progress=False, auto_adjust=False, threads=True)["Close"]
-        screen, raw = [], []
+        screen, raw, hist = [], [], {}
+        pxf = px.ffill()
+        hidx = list(pxf.index[-252:][::2])
+        out["hd"] = [d.strftime("%Y-%m-%d") for d in hidx]
         for t in UNIVERSE:
             f = fund["d"].get(t)
             if not f or t not in px or not f.get("sector"): continue
@@ -227,10 +244,12 @@ def main():
             price = float(h.iloc[-1])
             screen.append({"ticker": t, "sector": f["sector"], "price": round(price, 2), "pe": round(price / f["eps"], 1),
                            "roe": round(f["roe"] * 100, 1), "debt_equity": round(f["de"] / 100, 2),
-                           "div_yield": round(f["dps"] / price * 100, 2), "mom_1y": round((price / float(h.iloc[0]) - 1) * 100, 1)})
+                           "div_yield": round(f["dps"] / price * 100, 2), "mom_1y": round((price / float(h.iloc[0]) - 1) * 100, 1),
+                           "d1": round((price / float(h.iloc[-2]) - 1) * 100, 2) if len(h) > 1 else 0.0})
+            hist[t] = [round(float(v), 2) for v in pxf[t].loc[hidx].tolist()]
             if f.get("debt") and f.get("ebitda") and f["ebitda"] > 0: raw.append((f["sector"], f["debt"], f["ebitda"]))
         if len(screen) >= 20:
-            out["screen"] = screen
+            out["screen"] = screen; out["hist"] = hist
             t10 = out["rates"].get("DGS10", [[0, 4.0]])[-1][1]; cod = (t10 + 2.0) / 100   # assumed cost of debt = 10y + 2pts
             sect = []
             for s in sorted({r[0] for r in raw}):

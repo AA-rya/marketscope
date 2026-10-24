@@ -81,6 +81,19 @@ canvas,svg{max-width:100%}
 .src-tbl td,.src-tbl th{text-align:left;font-size:13px;vertical-align:top}.pfr{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;margin:6px 0}.pfr label{margin:0}.pfo{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 .kpi b.sm{font-size:19px;letter-spacing:-.3px;line-height:1.2}.kpi i{display:block}h3{font:700 14px var(--font);margin:6px 0 4px}
 @media(max-width:560px){.hb{grid-template-columns:96px 1fr 56px}.hax{padding-left:106px}.big{font-size:36px}}
+
+.star{cursor:pointer;color:var(--acc2);font-size:16px;width:24px;text-align:center!important}tr[data-t]{cursor:pointer}tr[data-t]:hover td{background:color-mix(in srgb,var(--acc) 6%,transparent)}
+button.mini{padding:4px 10px;font-size:12px;border-radius:8px}
+#modal{display:none;position:fixed;inset:0;z-index:20}#modal.open{display:block}.mback{position:absolute;inset:0;background:rgba(58,42,44,.4)}
+.mbox{position:relative;max-width:700px;margin:6vh auto 0;max-height:88vh;overflow:auto;background:var(--panel);border-radius:20px;padding:22px 24px;box-shadow:var(--shadow)}
+.mhead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.mt{font:800 28px var(--font);letter-spacing:-.6px}.mp{font:700 24px var(--font)}.mt2{margin-top:10px}.mt2 td,.mt2 th{padding:8px 10px}
+#help{display:flex;flex-direction:column;padding:18px}.hh>div:last-child{white-space:nowrap}.hh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
+#helpOut{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;margin:0;white-space:normal;font-size:14px;padding:4px 2px}
+.msg{max-width:92%;padding:10px 13px;border-radius:14px;line-height:1.5}.msg.bot{background:color-mix(in srgb,var(--acc2) 10%,var(--panel));border:1px solid var(--line);align-self:flex-start}.msg.me{background:var(--acc);color:#fff;align-self:flex-end}
+.msg a{color:var(--acc);font-weight:600}.msg.me a{color:#fff}.act{display:inline-block;margin:4px 8px 0 0;padding:2px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;text-decoration:none}
+#helpSugg{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}#helpSugg .q{display:inline-block;margin:0;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--ink);background:var(--bg)}
+.hin{display:flex;gap:8px}.hin input{flex:1}
+.mvr{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}.nw{padding:9px 0;border-bottom:1px solid var(--line)}.nw a{color:var(--ink);font-weight:600;text-decoration:none}.nw a:hover{color:var(--acc)}
 </style>
 </head>
 <body>
@@ -96,11 +109,10 @@ canvas,svg{max-width:100%}
 </div>
 <div id="toast"></div>
 <aside id="help">
-  <div style="display:flex;justify-content:space-between"><b style="font-family:var(--font);font-size:18px">Help</b><button id="helpX">Close</button></div>
-  <p class="note">Ask anything about using the tools or the finance behind them. Runs in your browser — no login or API key.</p>
-  <input id="helpQ" type="text" placeholder="e.g. how does a rate hike hit utilities?" style="width:100%">
-  <div class="tools"><button class="pri" id="helpGo">Ask</button></div>
-  <div id="helpSugg"></div><div id="helpOut"></div>
+  <div class="hh"><div><b style="font-family:var(--font);font-size:18px">Ask Marketscope</b><div class="note">Answers from the live data on this site</div></div><div><button id="helpClr" class="mini">Clear</button> <button id="helpX" class="mini">Close</button></div></div>
+  <div id="helpOut"></div>
+  <div id="helpSugg"></div>
+  <div class="hin"><input id="helpQ" type="text" placeholder="Ask a question…" autocomplete="off"><button class="pri" id="helpGo">Send</button></div>
 </aside>
 
 <script>
@@ -129,12 +141,12 @@ function setStatus(){const s=$('#status'),t=$('#stat2');if(!live){s.textContent=
   const u=new Date(live.updated),mins=(Date.now()-u)/60000,old=mins>45,nx=new Date(+u+5*60000),tm=d=>d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
   s.textContent=(old?'Delayed · ':'Live · ')+'updated '+ago(live.updated);s.className='pill '+(old?'warn':'live');
   const left=(nx-Date.now())/60000;
-  t.innerHTML=`Last refresh: <b>${tm(u)}</b><br>Next refresh: <b>${left>0.5?'about '+tm(nx):'due now'}</b>${left>0.5?' (in '+Math.ceil(left)+' min)':''}<br>Refreshes every 5 min`}
+  t.innerHTML=`Last refresh: <b>${tm(u)}</b><br>Next refresh: <b>${left>0.5?'about '+tm(nx):(old?'delayed — waiting on the collector':'any moment now')}</b>${left>0.5?' (in '+Math.ceil(left)+' min)':''}<br>Refreshes every 5 min`}
 async function loadLive(){
   try{const r=await fetch('data.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();if(!j.updated)throw 0;
     const first=!live;live=j;
     if(!isImp('screen')&&j.screen)screenData=j.screen;if(!isImp('sect')&&j.sect)sectData=j.sect;if(!isImp('flow'))flowData=j.flow||null;
-    setStatus();if(first||true)redraw();
+    setStatus();redraw();checkAlerts();
   }catch(e){setStatus()}
 }
 function redraw(){
@@ -153,9 +165,9 @@ function spark(a,up){const lo=Math.min(...a),hi=Math.max(...a),w=100,h=28,p=a.ma
 const pc=(v,d=2)=>`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${fmt(v,d)}%</span>`;
 
 /* ---------- tabs ---------- */
-const MODS={about:{t:'How it works',r:renderAbout},markets:{t:'Markets',r:renderMarkets},screener:{t:'Screener',r:renderScreener},sim:{t:'Rate Simulator',r:renderSim},viz:{t:'Oil Flow Map',r:renderViz}};
-const order=['markets','screener','sim','viz'];let cur=store.get('cur4','markets');if(!MODS[cur])cur='markets';
-const ICO={markets:'<path d="M3 17l5-6 4 4 8-10"/><path d="M15 5h5v5"/>',screener:'<path d="M3 5h18M6 12h12M10 19h4"/>',sim:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',viz:'<path d="M3 6c6 0 6 12 12 12h6M3 18c6 0 6-12 12-12h6"/>',about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'};
+const MODS={watch:{t:'Watchlist',r:renderWatch},about:{t:'How it works',r:renderAbout},markets:{t:'Markets',r:renderMarkets},screener:{t:'Screener',r:renderScreener},sim:{t:'Rate Simulator',r:renderSim},viz:{t:'Oil Flow Map',r:renderViz}};
+const order=['markets','screener','watch','sim','viz'];let cur=store.get('cur4','markets');if(!MODS[cur])cur='markets';
+const ICO={watch:'<path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.4l6.1-.8z"/>',markets:'<path d="M3 17l5-6 4 4 8-10"/><path d="M15 5h5v5"/>',screener:'<path d="M3 5h18M6 12h12M10 19h4"/>',sim:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',viz:'<path d="M3 6c6 0 6 12 12 12h6M3 18c6 0 6-12 12-12h6"/>',about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'};
 function go(k){cur=k;store.set('cur4',k);drawTabs();MODS[k].r();scrollTo(0,0)}
 function tabEl(k){const d=document.createElement('div');d.className='tab'+(k===cur?' on':'');d.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICO[k]+'</svg>'+MODS[k].t;d.onclick=()=>go(k);return d}
 function drawTabs(){const n=$('#tabs'),m=$('#tabsBottom');n.innerHTML='';m.innerHTML='';order.forEach(k=>n.appendChild(tabEl(k)));m.appendChild(tabEl('about'))}
@@ -164,16 +176,17 @@ function drawTabs(){const n=$('#tabs'),m=$('#tabsBottom');n.innerHTML='';m.inner
 function renderAbout(){
   const l=k=>`<a href="#" data-go="${k}" class="go">${MODS[k].t} &rarr;</a>`;
   $('#view').innerHTML=`<div>
-  <div class="hero"><h2>See the market<br>before it moves.</h2><p>Marketscope puts four things in one place: what markets are doing right now, which stocks fit your rules, what a change in interest rates could do to each industry, and where the oil the U.S. relies on is actually coming from.</p></div>
+  <div class="hero"><h2>See the market<br>before it moves.</h2><p>Marketscope puts everything in one place: what markets are doing right now, which stocks fit your rules, a watchlist with price alerts, what a change in interest rates could do to each industry, and where the oil the U.S. relies on is actually coming from.</p></div>
   <div class="grid3">
   <div class="card"><div class="step">1</div><h2>${l('markets')}</h2><p>Today's snapshot: stock indexes, the dollar, gold, oil, Bitcoin and the Treasury yield curve. Each tile shows the price, today's move and a one-month trend line.</p><p><b>How to use it:</b> glance at it first. If the yield curve line sits well above where it was a month ago, borrowing costs just rose — that is what the Rate Simulator tests.</p></div>
   <div class="card"><div class="step">2</div><h2>${l('screener')}</h2><p>You decide what a "good" stock means — not too expensive, solid profits, little debt — and it highlights every company that fits.</p><p><b>How to use it:</b> change the boxes on the left. Use the search and industry menu to narrow the list, click any column title to sort, and tick <i>Alert me</i> to get a pop-up the moment a new company starts passing.</p></div>
-  <div class="card"><div class="step">3</div><h2>${l('sim')}</h2><p>Pretend the Federal Reserve moves rates and see which industries are hurt or helped, and whether companies could still afford their interest bills.</p><p><b>How to use it:</b> drag the slider or tap a preset (+50 means rates rise half a percentage point). Longer bars to the left = bigger estimated loss. Then type your own mix of industries into <i>Your portfolio</i> to see the effect on you.</p></div>
-  <div class="card"><div class="step">4</div><h2>${l('viz')}</h2><p>A picture of U.S. crude oil: which countries send it in, and which regions it's shipped out to. Thicker band = more barrels.</p><p><b>How to use it:</b> pick two months with the menus, then flip between <i>Before</i>, <i>After</i> and <i>Change</i> to see who gained or lost market share. The headline above the chart is written automatically from the numbers.</p></div>
+  <div class="card"><div class="step">3</div><h2>${l('watch')}</h2><p>Follow the companies you care about and set price alerts, like "tell me if AAPL goes above $300".</p><p><b>How to use it:</b> click a company in the Screener to see its chart and press <i>Add to watchlist</i> (or click the star). Add an alert on the Watchlist page and leave the site open — you get a pop-up when a refresh crosses your price.</p></div>
+  <div class="card"><div class="step">4</div><h2>${l('sim')}</h2><p>Pretend the Federal Reserve moves rates and see which industries are hurt or helped, and whether companies could still afford their interest bills.</p><p><b>How to use it:</b> drag the slider or tap a preset (+50 means rates rise half a percentage point). Longer bars to the left = bigger estimated loss. Then type your own mix of industries into <i>Your portfolio</i> to see the effect on you.</p></div>
+  <div class="card"><div class="step">5</div><h2>${l('viz')}</h2><p>A picture of U.S. crude oil: which countries send it in, and which regions it's shipped out to. Thicker band = more barrels.</p><p><b>How to use it:</b> pick two months with the menus, then flip between <i>Before</i>, <i>After</i> and <i>Change</i> to see who gained or lost market share. The headline above the chart is written automatically from the numbers.</p></div>
   </div><div style="height:20px"></div>
   <div class="card"><h2>Where the numbers come from</h2><p class="note">Everything below is real, public data. Nothing on the site is made up or hand-typed.</p>
   <table class="src-tbl"><tr><th class="l">What</th><th class="l">Source</th><th class="l">How often it updates</th></tr>
-  <tr><td class="l">Index, commodity, currency, crypto prices; stock prices</td><td class="l">Yahoo Finance</td><td class="l">Pulled every 5 minutes (prices run roughly 15 minutes behind the exchanges)</td></tr>
+  <tr><td class="l">Index, commodity, currency, crypto prices; stock prices; headlines</td><td class="l">Yahoo Finance</td><td class="l">Pulled every 5 minutes (prices run roughly 15 minutes behind the exchanges)</td></tr>
   <tr><td class="l">Treasury yield curve</td><td class="l">U.S. Treasury daily par yield curve (falls back to Yahoo yields)</td><td class="l">Every 5 minutes; Treasury itself publishes once per business day</td></tr>
   <tr><td class="l">Company profits, debt, dividends</td><td class="l">Company filings via Yahoo Finance</td><td class="l">Every 6 hours (they only change when companies report)</td></tr>
   <tr><td class="l">Oil flows (imports by country, exports by region)</td><td class="l">U.S. Energy Information Administration (EIA)</td><td class="l">Checked every 5 minutes; EIA publishes new months about once a month</td></tr>
@@ -181,7 +194,7 @@ function renderAbout(){
   <p><b>How the updating works:</b> a small program on GitHub runs by itself every few minutes, collects the sources above and saves them to this site. Your browser checks for the newest copy every minute and redraws whatever you're looking at — no refresh needed. The green badge at the bottom-left shows how fresh it is.</p></div>
   <div class="card"><h2>Bring your own data</h2><p>Every tool has an <i>Import CSV</i> button and a <i>Download</i> button showing the exact layout (it exports the live data, so you can edit it or add history). Importing a file replaces the live view for that tool until you press <i>Switch back to live data</i>. Imports are saved only in your own browser. This is how you load historical data from FRED, Bloomberg or your own research.</p></div>
   <div class="card"><h2>Plain-English glossary</h2><p><b>P/E</b> — price you pay per $1 of yearly profit; lower = cheaper. <b>ROE</b> — profit earned on shareholders' money. <b>Debt/equity</b> — how much of the business is funded by borrowing. <b>Basis point (bp)</b> — one hundredth of a percentage point; 100 bp = 1%. <b>Interest coverage</b> — how many times a company's profit covers its interest bill; under about 2× is stressed. <b>Duration</b> — how sharply a stock's price reacts to rate changes. <b>Yield curve</b> — interest rates from short to long loans; when short rates are above long rates it is "inverted" and often signals a slowdown. <b>mb/d</b> — million barrels per day.</p></div>
-  <div class="card"><h2>What to keep in mind</h2><p>The simulator is a first-order estimate, not a forecast: the price effect is duration × rate change and ignores that rates usually move for a reason (e.g. a strong economy can lift stocks even as rates rise). Floating-debt share and duration per industry are stated assumptions; debt, profits and prices are live. Oil flow numbers are monthly and reported with a lag. Nothing here is investment advice.</p><p>Questions? Press <i>Help / Ask</i> any time.</p></div></div>`;
+  <div class="card"><h2>What to keep in mind</h2><p>The simulator is a first-order estimate, not a forecast: the price effect is duration × rate change and ignores that rates usually move for a reason (e.g. a strong economy can lift stocks even as rates rise). Floating-debt share and duration per industry are stated assumptions; debt, profits and prices are live. Oil flow numbers are monthly and reported with a lag. Nothing here is investment advice.</p><p>Questions? Press <i>Help / Ask</i> any time — it answers from the live numbers on the page (try "what is the S&P at?" or "tell me about NVDA"), can jump you to any tab, and can set the simulator for you ("what if rates rise 200 bp"). If it can't answer, it opens a pre-filled question to the project team.</p></div></div>`;
   document.querySelectorAll('[data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.go)});
 }
 
@@ -209,6 +222,9 @@ function drawMarkets(){
   const secs={};screenData.forEach(r=>{(secs[r.sector]=secs[r.sector]||[]).push(r)});
   const sr=Object.entries(secs).map(([s,a])=>({s,n:a.length,m:a.reduce((t,r)=>t+r.mom_1y,0)/a.length,pe:[...a].sort((x,y)=>x.pe-y.pe)[Math.floor(a.length/2)].pe})).sort((a,b)=>b.m-a.m);
   const mx=Math.max(...sr.map(r=>Math.abs(r.m)),1);
+  const mv=screenData.filter(r=>r.d1!=null).sort((a,b)=>b.d1-a.d1),up=mv.slice(0,5),dn=mv.slice(-5).reverse();
+  const mvh=mv.length?`<div class="card"><h2>Biggest movers today</h2><div class="row" style="gap:18px;margin-top:6px"><div class="col" style="min-width:160px"><h3>Up</h3>${up.map(r=>`<div class="mvr"><a href="#" data-o="${r.ticker}" class="go">${r.ticker}</a><span>${pc(r.d1)}</span></div>`).join('')}</div><div class="col" style="min-width:160px"><h3>Down</h3>${dn.map(r=>`<div class="mvr"><a href="#" data-o="${r.ticker}" class="go">${r.ticker}</a><span>${pc(r.d1)}</span></div>`).join('')}</div></div></div>`:'';
+  const nw=live.news&&live.news.length?`<div class="card"><h2>Headlines</h2><div class="note">From Yahoo Finance. Opens the publisher's page in a new tab.</div>${live.news.slice(0,8).map(n=>`<div class="nw"><a href="${n.url}" target="_blank" rel="noopener">${n.title.replace(/</g,'&lt;')}</a><div class="note">${n.src||''}${n.t?' · '+ago(n.t):''}</div></div>`).join('')}</div>`:'';
   el.innerHTML=`<div class="pagehead"><h2>Markets</h2><span class="note">Updated ${ago(live.updated)} · Yahoo Finance, ~15 min delayed</span></div>
   <div class="tiles">${mk.map(q=>`<div class="tile"><div class="tn">${q.name}</div><div class="tp">${q.name.includes('yield')?fmt(q.price,2)+'%':(q.price>=1000?fmt(q.price,0):fmt(q.price,2))}</div><div class="tc">${pc(q.d1)} <span class="note">today</span></div>${spark(q.spark,q.spark[q.spark.length-1]>=q.spark[0])}<div class="tm note">1 month ${pc(q.m1,1)}</div></div>`).join('')}</div>
   <div class="row"><div class="col">${cv}</div>
@@ -244,9 +260,10 @@ function drawTbl(check){
   $('#kp').innerHTML=`<div class="kpi"><span>Passing</span><b>${m.length}<i> of ${all.length}</i></b></div><div class="kpi"><span>Avg P/E of matches</span><b>${m.length?fmt(av(m.map(r=>r.pe))):'–'}</b></div><div class="kpi"><span>Avg dividend yield</span><b>${m.length?fmt(av(m.map(r=>r.div_yield)))+'%':'–'}</b></div><div class="kpi"><span>Strongest 1-yr</span><b>${top?top.ticker:'–'}<i> ${top?fmt(top.mom_1y)+'%':''}</i></b></div>`;
   $('#cnt').textContent=hits.size+' pass';
   const nm={ticker:'ticker',sector:'industry',price:'price $',pe:'P/E',roe:'ROE %',debt_equity:'debt/equity',div_yield:'yield %',mom_1y:'1-yr %'};
-  $('#tbl').innerHTML='<div class="tw"><table><tr>'+SCOLS.map(c=>`<th class="${c==='sector'?'l':''}" data-s="${c}">${nm[c]}${sortK===c?(sortD>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>'+rows.map(r=>`<tr class="${hits.has(r.ticker)?'hit':''}">`+SCOLS.map(c=>`<td class="${c==='sector'?'l':''} ${c==='mom_1y'?(r[c]>=0?'up':'dn'):''}">${typeof r[c]==='number'?fmt(r[c],c==='price'?2:1):r[c]}</td>`).join('')+'</tr>').join('')+'</table></div>';
+  $('#tbl').innerHTML='<div class="tw"><table><tr><th></th>'+SCOLS.map(c=>`<th class="${c==='sector'?'l':''}" data-s="${c}">${nm[c]}${sortK===c?(sortD>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>'+rows.map(r=>`<tr class="${hits.has(r.ticker)?'hit':''}" data-t="${r.ticker}"><td class="star" data-st="${r.ticker}">${watch().includes(r.ticker)?'★':'☆'}</td>`+SCOLS.map(c=>`<td class="${c==='sector'?'l':''} ${c==='mom_1y'?(r[c]>=0?'up':'dn'):''}">${typeof r[c]==='number'?fmt(r[c],c==='price'?2:1):r[c]}</td>`).join('')+'</tr>').join('')+'</table></div>';
+  document.querySelectorAll('#tbl tr[data-t]').forEach(tr=>tr.onclick=e=>{const s=e.target.closest('[data-st]');if(s){toggleWatch(s.dataset.st);s.textContent=watch().includes(s.dataset.st)?'★':'☆'}else openStock(tr.dataset.t)});
   document.querySelectorAll('th[data-s]').forEach(th=>th.onclick=()=>{sortD=sortK===th.dataset.s?-sortD:1;sortK=th.dataset.s;drawTbl(false)});
-  const t=rate10();$('#rateline').textContent=(t?`Context: 10-yr Treasury yield ${fmt(t,2)}%. `:'')+'Highlighted rows meet every rule.';
+  const t=rate10();$('#rateline').textContent=(t?`Context: 10-yr Treasury yield ${fmt(t,2)}%. `:'')+'Highlighted rows meet every rule. Click a row for details; click the star to watch it.';
 }
 
 /* ---------- RATE SIMULATOR ---------- */
@@ -358,30 +375,125 @@ function drawOil(){
   $('#oilnote').textContent='Daily front-month futures, USD per barrel (Yahoo Finance).';
 }
 
-/* ---------- help ---------- */
+/* ---------- STOCK DETAIL ---------- */
+const watch=()=>store.get('watch',[]);
+function toggleWatch(t){const w=watch(),i=w.indexOf(t);i>=0?w.splice(i,1):w.push(t);store.set('watch',w);toast(i>=0?t+' removed from watchlist':t+' added to watchlist')}
+function openStock(t){
+  const r=screenData.find(x=>x.ticker===t);if(!r)return;
+  const same=screenData.filter(x=>x.sector===r.sector),med=a=>{const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]};
+  const h=live&&live.hist&&live.hist[t],hd=live&&live.hd;
+  let m=$('#modal');if(!m){m=document.createElement('div');m.id='modal';document.body.appendChild(m)}
+  const rows=[['P/E',fmt(r.pe),'sector median '+fmt(med(same.map(x=>x.pe)))],['ROE %',fmt(r.roe),'sector median '+fmt(med(same.map(x=>x.roe)))],['Debt/equity',fmt(r.debt_equity,2),'sector median '+fmt(med(same.map(x=>x.debt_equity)),2)],['Dividend yield %',fmt(r.div_yield,2),'sector median '+fmt(med(same.map(x=>x.div_yield)),2)],['1-year change %',fmt(r.mom_1y),'sector median '+fmt(med(same.map(x=>x.mom_1y)))]];
+  m.innerHTML=`<div class="mback" data-x></div><div class="mbox"><div class="mhead"><div><div class="mt">${r.ticker}</div><div class="note">${r.sector}</div></div><div style="text-align:right"><div class="mp">$${fmt(r.price,2)}</div>${r.d1!=null?`<div>${pc(r.d1)} <span class="note">today</span></div>`:''}</div><button data-x>Close</button></div>
+  <div class="note" style="margin-top:6px">${passes(r)?'<span class="pill live">meets all your screener rules</span>':'<span class="pill">does not meet your screener rules</span>'}</div>
+  ${h?`<canvas id="mc" width="640" height="200"></canvas>`:'<p class="note">Price history appears after the next data refresh.</p>'}
+  <table class="mt2"><tr><th class="l">Measure</th><th>${r.ticker}</th><th class="l">Compared with</th></tr>${rows.map(x=>`<tr><td class="l">${x[0]}</td><td>${x[1]}</td><td class="l note">${x[2]}</td></tr>`).join('')}</table>
+  <div class="tools"><button class="pri" id="mw">${watch().includes(t)?'Remove from watchlist':'Add to watchlist'}</button><button id="ma">Set a price alert</button></div></div>`;
+  m.className='open';
+  m.querySelectorAll('[data-x]').forEach(e=>e.onclick=()=>{m.className=''});
+  $('#mw').onclick=()=>{toggleWatch(t);$('#mw').textContent=watch().includes(t)?'Remove from watchlist':'Add to watchlist';if(cur==='watch')renderWatch()};
+  $('#ma').onclick=()=>{m.className='';go('watch');setTimeout(()=>{const i=$('#at');if(i){i.value=t;$('#ap').focus()}},50)};
+  if(h){const c=$('#mc'),x=c.getContext('2d'),cs=getComputedStyle(document.body),g=k=>cs.getPropertyValue(k).trim(),lo=Math.min(...h),hi=Math.max(...h),L=50,R=c.width-10,T=10,B=c.height-24,Y=v=>B-(B-T)*(v-lo)/((hi-lo)||1);
+    x.font='11px '+g('--sans');x.fillStyle=g('--mute');x.strokeStyle=g('--line');
+    for(let i=0;i<=3;i++){const y=T+(B-T)*i/3;x.beginPath();x.moveTo(L,y);x.lineTo(R,y);x.stroke();x.textAlign='right';x.fillText('$'+(hi-(hi-lo)*i/3).toFixed(0),L-6,y+4)}
+    x.strokeStyle=h[h.length-1]>=h[0]?g('--up'):g('--dn');x.lineWidth=2.2;x.beginPath();h.forEach((v,i)=>{const px=L+(R-L)*i/(h.length-1);i?x.lineTo(px,Y(v)):x.moveTo(px,Y(v))});x.stroke();
+    x.fillStyle=g('--mute');x.textAlign='left';if(hd)x.fillText(hd[0],L,c.height-6);x.textAlign='right';if(hd)x.fillText(hd[hd.length-1],R,c.height-6)}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#modal');if(m)m.className='';$('#help').classList.remove('open')}});
+
+/* ---------- WATCHLIST & ALERTS ---------- */
+function renderWatch(){
+  const w=watch(),al=store.get('palerts',[]);
+  const rows=w.map(t=>screenData.find(x=>x.ticker===t)).filter(Boolean);
+  $('#view').innerHTML=`<div class="pagehead"><h2>Watchlist &amp; alerts</h2><span class="note">Follow companies and get told when a price crosses your line</span></div>
+  <details class="card howto" open><summary>How to use this page</summary><ol><li><b>Add companies.</b> Type a ticker below, or click any company in the Screener and press <i>Add to watchlist</i>.</li><li><b>Set a price alert.</b> Choose a ticker, whether it should go <i>above</i> or <i>below</i> a price, and the price. When a data refresh crosses that price you get a pop-up (and a browser notification if you allow it).</li><li>Alerts and your list are saved in your own browser only.</li></ol></details>
+  <div class="row"><div class="col"><div class="card"><h2>Your watchlist</h2><div class="tools" style="margin-top:6px"><input type="text" id="wt" placeholder="Ticker, e.g. AAPL" style="width:150px"><button class="pri" id="wa">Add</button></div>
+  ${rows.length?`<div class="tw"><table><tr><th class="l">Ticker</th><th>Price</th><th>Today</th><th>1-yr</th><th>P/E</th><th></th></tr>${rows.map(r=>`<tr><td class="l"><a href="#" data-o="${r.ticker}" class="go">${r.ticker}</a> <span class="note">${r.sector}</span></td><td>$${fmt(r.price,2)}</td><td>${r.d1!=null?pc(r.d1):'–'}</td><td>${pc(r.mom_1y,1)}</td><td>${fmt(r.pe)}</td><td><button data-rm="${r.ticker}" class="mini">Remove</button></td></tr>`).join('')}</table></div>`:'<p class="note" style="margin-top:12px">Nothing here yet. Add a ticker above to start.</p>'}
+  <div class="note" style="margin-top:8px">Tracked tickers: the ${screenData.length} large U.S. companies in the screener.</div></div></div>
+  <div class="col"><div class="card"><h2>Price alerts</h2><div class="tools" style="margin-top:6px"><input type="text" id="at" placeholder="Ticker" style="width:90px"><select id="ad"><option value="above">goes above</option><option value="below">goes below</option></select><input type="number" id="ap" placeholder="Price $" style="width:100px"><button class="pri" id="aa">Add alert</button></div>
+  ${al.length?`<div class="tw"><table><tr><th class="l">Alert</th><th>Now</th><th class="l">Status</th><th></th></tr>${al.map((a,i)=>{const r=screenData.find(x=>x.ticker===a.t);return `<tr><td class="l"><b>${a.t}</b> ${a.dir} $${fmt(a.px,2)}</td><td>${r?'$'+fmt(r.price,2):'–'}</td><td class="l">${a.done?'<span class="pill live">triggered '+(a.when||'')+'</span>':'<span class="pill">watching</span>'}</td><td><button data-ra="${i}" class="mini">Delete</button></td></tr>`}).join('')}</table></div>`:'<p class="note" style="margin-top:12px">No alerts yet.</p>'}
+  <label class="chk"><input type="checkbox" id="nt"> Also send browser notifications</label></div></div></div>`;
+  $('#nt').checked=window.Notification&&Notification.permission==='granted';$('#nt').onchange=e=>{if(e.target.checked&&window.Notification)Notification.requestPermission().then(p=>{if(p!=='granted')e.target.checked=false})};
+  const add=()=>{const t=$('#wt').value.trim().toUpperCase();if(!screenData.find(x=>x.ticker===t)){toast('Ticker not found in the tracked list');return}if(!watch().includes(t))toggleWatch(t);renderWatch()};
+  $('#wa').onclick=add;$('#wt').onkeydown=e=>{if(e.key==='Enter')add()};
+  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{toggleWatch(b.dataset.rm);renderWatch()});
+  document.querySelectorAll('[data-o]').forEach(a=>a.onclick=e=>{e.preventDefault();openStock(a.dataset.o)});
+  $('#aa').onclick=()=>{const t=$('#at').value.trim().toUpperCase(),p=+$('#ap').value;if(!screenData.find(x=>x.ticker===t)||!p){toast('Enter a valid ticker and price');return}const a=store.get('palerts',[]);a.push({t,dir:$('#ad').value,px:p,done:false});store.set('palerts',a);renderWatch()};
+  document.querySelectorAll('[data-ra]').forEach(b=>b.onclick=()=>{const a=store.get('palerts',[]);a.splice(+b.dataset.ra,1);store.set('palerts',a);renderWatch()});
+}
+function checkAlerts(){
+  const al=store.get('palerts',[]);let ch=false;
+  al.forEach(a=>{if(a.done)return;const r=screenData.find(x=>x.ticker===a.t);if(!r)return;if((a.dir==='above'&&r.price>=a.px)||(a.dir==='below'&&r.price<=a.px)){a.done=true;a.when=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});ch=true;const m=`${a.t} is ${a.dir} $${fmt(a.px,2)} (now $${fmt(r.price,2)})`;toast(m);if(window.Notification&&Notification.permission==='granted')new Notification('Marketscope alert',{body:m})}});
+  if(ch){store.set('palerts',al);if(cur==='watch')renderWatch()}
+}
+/* ---------- HELP ASSISTANT (works offline from the page; answers from live data on the site) ---------- */
+const hist=store.get('chat',[]);
+function say(who,html){hist.push({who,html});store.set('chat',hist.slice(-40));paintChat()}
+function paintChat(){const o=$('#helpOut');o.innerHTML=hist.map(m=>`<div class="msg ${m.who}">${m.html}</div>`).join('');o.scrollTop=o.scrollHeight}
+const A=(label,act)=>`<a href="#" class="act" data-act="${act}">${label}</a>`;
+function mq(n){return live&&live.market&&live.market.find(m=>m.name.toLowerCase()===n)}
+function answer(q){
+  const L=q.toLowerCase().trim();let out=[];
+  /* actions */
+  let m;
+  if(m=L.match(/(?:set|change|move|what if).*?(?:rates?|shock).*?([+-]?\d{2,3})\s*(?:bp|bps|basis)?/)){const v=Math.max(-300,Math.min(300,Math.round(+m[1]/25)*25));shock=v;store.set('shock',v);go('sim');return `Set the simulator to <b>${v>0?'+':''}${v} bp</b> and opened it.`}
+  if(m=L.match(/^(?:go to|open|show me|take me to)\s+(.*)$/)){const map={markets:'markets',market:'markets',screener:'screener',watchlist:'watch',alerts:'watch',simulator:'sim','rate simulator':'sim',rates:'sim',oil:'viz','oil flow map':'viz','flow map':'viz','how it works':'about'};const k=Object.keys(map).find(x=>m[1].includes(x));if(k){go(map[k]);return 'Opened <b>'+MODS[map[k]].t+'</b>.'}}
+  /* market prices */
+  const names={'s&p':'s&p 500','sp500':'s&p 500','s&p 500':'s&p 500','nasdaq':'nasdaq','dow':'dow','russell':'russell 2000','vix':'vix','dollar':'us dollar index','gold':'gold','copper':'copper','natural gas':'natural gas','wti':'wti crude','brent':'brent crude','bitcoin':'bitcoin','btc':'bitcoin','oil price':'wti crude','crude price':'wti crude'};
+  Object.keys(names).filter(k=>L.includes(k)).slice(0,2).forEach(k=>{const q=mq(names[k]);if(q&&!out.some(o=>o.includes(q.name)))out.push(`<b>${q.name}</b> is ${q.price>=1000?fmt(q.price,0):fmt(q.price,2)} (${pc(q.d1)} today, ${pc(q.m1,1)} over a month).`)});
+  if(/10.?(yr|year)|yield|treasury/.test(L)&&!/curve/.test(L)){const t=rate10();if(t)out.push(`The 10-year Treasury yield is <b>${fmt(t,2)}%</b>.`)}
+  if(/curve|invert|spread/.test(L)&&live&&live.curve){const c=live.curve,i=l=>c.labels.indexOf(l),v=c.now.v;if(i('2 Yr')>=0&&i('10 Yr')>=0){const s=v[i('10 Yr')]-v[i('2 Yr')];out.push(`The 10-year minus 2-year spread is <b>${s>=0?'+':''}${fmt(s,2)} pts</b> (${s<0?'inverted — short rates above long rates':'normal — long rates above short rates'}). ${A('Open Markets','go:markets')}`)}}
+  /* tickers */
+  const tk=(q.match(/\b[A-Z]{1,5}\b/g)||[]).filter(t=>screenData.find(x=>x.ticker===t)).slice(0,2);
+  tk.forEach(t=>{const r=screenData.find(x=>x.ticker===t);out.push(`<b>${r.ticker}</b> (${r.sector}): $${fmt(r.price,2)}${r.d1!=null?', '+pc(r.d1)+' today':''}; P/E ${fmt(r.pe)}, ROE ${fmt(r.roe)}%, debt/equity ${fmt(r.debt_equity,2)}, yield ${fmt(r.div_yield,2)}%, ${pc(r.mom_1y,1)} over a year. ${passes(r)?'It <b>meets</b>':'It does <b>not</b> meet'} your screener rules. ${A('Details','stock:'+t)} ${A('Watch','watch:'+t)}`)});
+  /* screener */
+  if(/screen|pass|match|how many|filter/.test(L)&&screenData.length){const h=screenData.filter(passes);out.push(`<b>${h.length} of ${screenData.length}</b> companies meet your rules (P/E ≤ ${crit.pe_max}, ROE ≥ ${crit.roe_min}%, debt/equity ≤ ${crit.de_max}, yield ≥ ${crit.dy_min}%). ${h.slice(0,8).map(r=>r.ticker).join(', ')}${h.length>8?'…':''} ${A('Open Screener','go:screener')}`)}
+  if(/gainer|winner|best|top mover|biggest.*(up|gain)/.test(L)&&screenData.length){const s=[...screenData].filter(r=>r.d1!=null).sort((a,b)=>b.d1-a.d1).slice(0,3);if(s.length)out.push('Biggest gainers today: '+s.map(r=>`<b>${r.ticker}</b> ${pc(r.d1)}`).join(', ')+'.')}
+  if(/loser|worst|biggest.*(down|drop|fall)/.test(L)&&screenData.length){const s=[...screenData].filter(r=>r.d1!=null).sort((a,b)=>a.d1-b.d1).slice(0,3);if(s.length)out.push('Biggest decliners today: '+s.map(r=>`<b>${r.ticker}</b> ${pc(r.d1)}`).join(', ')+'.')}
+  /* simulator by sector */
+  const sec=sectData.find(s=>L.includes(s.sector.toLowerCase())||(s.sector==='Real Estate'&&/reit/.test(L))||(s.sector==='Financial Services'&&/bank|financial/.test(L))||(s.sector==='Healthcare'&&/health/.test(L)));
+  if(sec&&/rate|hike|cut|simulat|interest|hurt|affect|impact/.test(L)){const px=-sec.equity_duration*(shock/100),dI=sec.floating_share*sec.debt_ebitda*(shock/10000),c1=1/(1/sec.interest_cover+dI);out.push(`At the simulator's current <b>${shock>0?'+':''}${shock} bp</b>, <b>${sec.sector}</b> is estimated at ${pc(px,1)} (price), with interest coverage going from ${fmt(sec.interest_cover)}× to ${fmt(c1)}×. ${A('Open Simulator','go:sim')}`)}
+  /* oil */
+  if(/oil|crude|import|export|canada|persian|gulf|opec|venezuela|mexico/.test(L)&&flowOK()){const M=flowData.months,i=M.length-1,I=flowData.imports,tot=Object.values(I).reduce((t,a)=>t+(a[i]||0),0),top=Object.entries(I).sort((a,b)=>b[1][i]-a[1][i])[0];const key=Object.keys(I).find(k=>L.includes(k.toLowerCase()))||(L.includes('gulf')?'Persian Gulf':null);
+    out.push(key?`<b>${key}</b> supplied ${fmt(I[key][i],2)} mb/d of U.S. crude imports in ${M[i]} (vs ${fmt(I[key][0],2)} in ${M[0]}).`:`In ${M[i]} the U.S. imported <b>${fmt(tot,2)} mb/d</b> of crude; the largest source was <b>${top[0]}</b> at ${fmt(top[1][i],2)} mb/d. ${A('Open Oil Flow Map','go:viz')}`)}
+  /* freshness */
+  if(/updat|refresh|fresh|last|next|real.?time|live|delay/.test(L)&&live){const u=new Date(live.updated);out.push(`Data was last refreshed <b>${ago(live.updated)}</b> (${u.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}). The collector runs about every 5 minutes and this page re-checks every minute. Prices are ~15 min delayed; company fundamentals refresh every 6 hours; oil flows update when the EIA publishes (about monthly).`)}
+  if(out.length)return out.join('<br><br>');
+  /* knowledge base: score by keyword hits */
+  const sc=KB.map(([k,t,tags])=>({t,s:(L.match(new RegExp(k,'gi'))||[]).length})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,2);
+  if(sc.length)return sc.map(x=>x.t).join('<br><br>');
+  const body=encodeURIComponent('Question: '+q+'\n\n(Sent from the Marketscope help box)');
+  return `I couldn't find an answer to that in the site's data or guide. You can ask about live prices ("what is the S&P at?"), a ticker ("tell me about NVDA"), your screener results, the rate simulator ("what happens to utilities at +200 bp?"), oil flows, or how things work. Or <a href="https://github.com/AA-rya/marketscope/issues/new?title=${encodeURIComponent('Question: '+q.slice(0,60))}&body=${body}" target="_blank" rel="noopener">send this question to the project team</a> (opens a pre-filled GitHub issue).`;
+}
 const KB=[
- ['markets|index|indices|s&p|nasdaq|vix|dollar|gold|bitcoin','Markets tab: live prices for the major indexes, VIX (the "fear gauge"), the dollar, gold, copper, natural gas, oil and Bitcoin, each with today\'s move and a one-month trend line. Prices run about 15 minutes behind the exchanges.'],
- ['yield curve|curve|invert|2s10s|spread','The yield curve plots Treasury interest rates from short to long maturities. When short rates exceed long rates it is "inverted", historically a sign investors expect slower growth or rate cuts. The chart compares now, a month ago and a year ago.'],
- ['screener|filter|flag|criteria|rules','Screener: set your rules (max P/E, min ROE, max debt/equity, min dividend yield, min 1-year change). Companies meeting every rule are highlighted. Search by ticker, filter by industry, and click a column title to sort. Tick "Alert me" to get a notification when a new company starts passing after a refresh.'],
- ['import|csv|historical|upload','Every tool has Import CSV and Download CSV buttons. Download gives you the live data in the exact layout; edit or extend it (e.g. with history from FRED or Bloomberg) and import it back. Imports live only in your browser and override live data until you press "Switch back to live data".'],
- ['real.?time|live|update|refresh|delay|fresh','Updating: a program on GitHub collects Yahoo Finance, U.S. Treasury and EIA data every 5 minutes and saves it to this site; your browser checks for new data every minute and redraws. Stock prices are ~15 minutes delayed; company fundamentals refresh every 6 hours; oil flows update when EIA publishes (about monthly).'],
- ['source|where.*data|from where','Sources: Yahoo Finance (prices, company fundamentals), U.S. Treasury (yield curve, average interest rates), U.S. Energy Information Administration (oil import and export tables). The "How it works" page has a table with update frequency for each.'],
- ['rate|hike|cut|interest|simulator|bp|basis','Simulator: a rate rise lifts interest costs in proportion to how much of an industry\'s debt is floating-rate and how leveraged it is, lowering coverage; long-duration stocks (utilities, REITs, growth tech) fall most because far-off profits are discounted harder. 100 basis points = 1 percentage point.'],
- ['portfolio|my mix|holdings','Your portfolio (Rate Simulator): enter the % you hold in each industry; the page weights the estimated price effects by your mix and shows the total for the chosen rate move.'],
- ['utilit|reit|real estate','Utilities and REITs behave like bonds: heavy debt, long duration, high payouts. They usually fall most when rates rise and gain most when rates fall.'],
- ['duration','Equity duration ≈ how sensitive a stock\'s price is to a 1-point move in rates. Estimated price effect = −duration × rate change. It is an assumption per industry, not a measured value.'],
- ['coverage|interest cover|stress','Interest coverage = operating profit ÷ interest cost. Under about 2× is stressed; 2–4× tight; above 4× comfortable. The simulator recomputes it after the rate move.'],
- ['oil|flow|map|crude|import|export|gulf|canada|persian','Oil Flow Map: U.S. crude oil imports by origin (left) and exports by destination region (right), from the EIA, in million barrels per day. Choose a before and after month, then switch between Before, After and Change. The headline above the chart is generated from the numbers.'],
- ['sidebar|menu|navigate|tab|where','Use the left sidebar: Markets, Screener, Rate Simulator and Oil Flow Map. "How it works" is at the very bottom.'],
- ['p/e|pe ratio|roe|debt|yield|glossary|mean','P/E = price per $1 of yearly profit (lower is cheaper). ROE = profit earned on shareholder money. Debt/equity = how much of the business is borrowed. Dividend yield = yearly dividend ÷ price. More terms are in the glossary on "How it works".']];
-function ask(q){const m=KB.filter(([k])=>new RegExp(k,'i').test(q));return m.length?m.slice(0,3).map(x=>x[1]).join('\n\n'):'I can answer questions about the four tools, CSV import, how and when data updates, and the finance concepts behind them. Try: "how often does it update?", "what is the yield curve?", "why do utilities fall when rates rise?"'}
-$('#helpBtn').onclick=()=>$('#help').classList.add('open');$('#helpX').onclick=()=>$('#help').classList.remove('open');
-$('#helpGo').onclick=()=>$('#helpOut').textContent=ask($('#helpQ').value);$('#helpQ').onkeydown=e=>{if(e.key==='Enter')$('#helpGo').click()};
-$('#helpSugg').innerHTML=['How often does it update?','Where does the data come from?','What is the yield curve?','Why do utilities fall when rates rise?','How do I import data?'].map(q=>`<span class="q">${q}</span>`).join('');
-document.querySelectorAll('.q').forEach(e=>e.onclick=()=>{$('#helpQ').value=e.textContent;$('#helpGo').click()});
+ ['markets|index|indices|nasdaq|vix|bitcoin','The Markets tab shows live prices for major indexes, VIX (the "fear gauge"), the dollar, gold, copper, natural gas, oil and Bitcoin, plus top movers, the Treasury yield curve and headlines. Prices run about 15 minutes behind the exchanges.'],
+ ['yield curve|curve|invert','The yield curve plots Treasury interest rates from short to long maturities. When short rates exceed long rates it is "inverted" — historically a sign investors expect slower growth or rate cuts.'],
+ ['screener|rules|criteria','Screener: set your rules (max P/E, min ROE, max debt/equity, min dividend yield, min 1-year change). Companies meeting every rule are highlighted. Click a company for a detail page with a price chart; star it to add it to your watchlist. Tick "Alert me" to be told when a new company starts passing.'],
+ ['watchlist|alert|notify|notification','Watchlist & alerts: add companies to follow, and set price alerts ("AAPL goes above $300"). When a data refresh crosses your price you get a pop-up and, if allowed, a browser notification. Everything is stored only in your browser.'],
+ ['import|csv|historical|upload|export|download','Every tool has Import CSV and Download CSV. Download gives you the live data in the exact layout; edit or extend it (e.g. with history from FRED or Bloomberg) and import it back. It stays in your browser and overrides live data until you press "Switch back to live data".'],
+ ['source|where.*data|come from','Sources: Yahoo Finance (prices, company fundamentals, headlines), U.S. Treasury (yield curve, average interest rates), U.S. Energy Information Administration (oil import and export tables). "How it works" has a table with how often each updates.'],
+ ['rate|hike|cut|simulator|bp|basis','Rate simulator: a rate rise lifts interest costs in proportion to how much of an industry\'s debt is floating-rate and how leveraged it is, lowering interest coverage. Long-duration stocks (utilities, REITs, growth tech) fall most because far-off profits are discounted harder. 100 basis points = 1 percentage point.'],
+ ['portfolio|my mix|holdings','Your portfolio (Rate Simulator): enter the % you hold in each industry; the page weights the estimated price effects by your mix.'],
+ ['duration','Equity duration ≈ how sensitive a stock\'s price is to a 1-point move in rates. Estimated price effect = −duration × rate change. It is a stated assumption per industry.'],
+ ['coverage|interest cover|stress','Interest coverage = operating profit ÷ interest cost. Under about 2× is stressed; 2–4× tight; above 4× comfortable.'],
+ ['p/e|pe ratio|roe|debt|yield|glossary|mean|what is','P/E = price per $1 of yearly profit (lower is cheaper). ROE = profit earned on shareholder money. Debt/equity = how much of the business is borrowed. Dividend yield = yearly dividend ÷ price. More terms are in the glossary on "How it works".'],
+ ['bitcoin|crypto','Bitcoin is shown on the Markets tab as a risk-appetite gauge.'],
+ ['sidebar|menu|navigate|tab|where','Use the left sidebar: Markets, Screener, Watchlist, Rate Simulator and Oil Flow Map. "How it works" is at the very bottom.']];
+const HELP_SUGG=['What is the S&P at?','Tell me about NVDA','How many stocks pass my screen?','What happens to utilities at +200 bp?','Where did Canada oil imports land?','When did it last refresh?','Open the watchlist'];
+function helpInit(){
+  if(!hist.length)hist.push({who:'bot',html:'Hi! Ask me anything about the site, the finance behind it, or the live numbers. I read the same data you see on screen.'});
+  $('#helpSugg').innerHTML=HELP_SUGG.map(q=>`<span class="q">${q}</span>`).join('');
+  document.querySelectorAll('#helpSugg .q').forEach(e=>e.onclick=()=>send(e.textContent));
+  $('#helpBtn').onclick=()=>{$('#help').classList.add('open');$('#helpQ').focus();paintChat()};$('#helpX').onclick=()=>$('#help').classList.remove('open');
+  $('#helpGo').onclick=()=>send($('#helpQ').value);$('#helpQ').onkeydown=e=>{if(e.key==='Enter')send($('#helpQ').value)};
+  $('#helpClr').onclick=()=>{hist.length=0;hist.push({who:'bot',html:'Chat cleared. What would you like to know?'});store.set('chat',[]);paintChat()};
+  $('#helpOut').addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(!a)return;e.preventDefault();const [k,v]=a.dataset.act.split(':');if(k==='go'){go(v);$('#help').classList.remove('open')}if(k==='stock'){openStock(v);$('#help').classList.remove('open')}if(k==='watch'){toggleWatch(v)}});
+  paintChat();
+}
+function send(q){q=(q||'').trim();if(!q)return;$('#helpQ').value='';say('me',q.replace(/</g,'&lt;'));let a;try{a=answer(q)}catch(e){a='Something went wrong answering that — try rephrasing.'}setTimeout(()=>say('bot',a),250)}
 
 /* ---------- boot ---------- */
-drawTabs();MODS[cur].r();loadLive();pullRates();
+helpInit();drawTabs();MODS[cur].r();loadLive();pullRates();
 setInterval(loadLive,60*1000);setInterval(setStatus,30*1000);
 
 </script>
