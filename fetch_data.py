@@ -236,7 +236,7 @@ def main():
     except Exception: pass
     age = 1e9
     if fund.get("t"): age = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(fund["t"])).total_seconds()
-    if age > 6 * 3600 or not fund.get("d") or fund.get("v") != 3 or any(t not in fund["d"] for t in UNIVERSE):
+    if age > 6 * 3600 or (not fund.get("filings") and age > 1500) or not fund.get("d") or fund.get("v") != 3 or any(t not in fund["d"] for t in UNIVERSE):
         d = fund.get("d", {}) if fund.get("v") == 3 else {}
         for t in UNIVERSE:
             try:
@@ -253,19 +253,25 @@ def main():
         fund = {"t": out["updated"], "v": 3, "d": d}
         # SEC EDGAR: latest 8-K filings per company (public Atom feed, no key)
         fl = []
-        for t in UNIVERSE:
+        UA = "Marketscope FMKT256 student project github.com/AA-rya/marketscope (public, non-commercial)"
+        try:
+            cik = {v["ticker"]: v["cik_str"] for v in json.loads(get("https://www.sec.gov/files/company_tickers.json", 30, UA)).values()}
+        except Exception as e:
+            cik = {}; DIAG.append("edgar map: " + repr(e)[:80])
+        for t in UNIVERSE if cik else []:
             try:
-                import xml.etree.ElementTree as ET
-                x = get(f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={t}&type=8-K&dateb=&owner=include&count=3&output=atom", 20, "Marketscope student project (github.com/AA-rya/marketscope)")
-                ns = {"a": "http://www.w3.org/2005/Atom"}
-                for e in ET.fromstring(x).findall("a:entry", ns)[:2]:
-                    link = e.find("a:link", ns); summ = (e.findtext("a:summary", "", ns) or "")
-                    time.sleep(0.12)
-                    items = re.findall(r"Items?[^<]*", re.sub(r"<[^>]+>", " ", summ))
-                    fl.append({"t": t, "form": "8-K", "when": (e.findtext("a:updated", "", ns) or "")[:10], "url": link.get("href") if link is not None else "",
-                               "items": re.sub(r"\s+", " ", items[0]).strip()[:140] if items else ""})
-            except Exception as e: DIAG.append("edgar " + t + ": " + repr(e)[:80]); 
-            if len(DIAG) > 6: break
+                c = cik.get(t.replace("-", "."))
+                if not c: continue
+                j = json.loads(get(f"https://data.sec.gov/submissions/CIK{int(c):010d}.json", 20, UA)); r = j["filings"]["recent"]; n = 0
+                for i, f in enumerate(r["form"]):
+                    if f == "8-K" and n < 2:
+                        acc = r["accessionNumber"][i]
+                        fl.append({"t": t, "form": "8-K", "when": r["filingDate"][i], "items": r.get("items", [""] * 999)[i][:120],
+                                   "url": f"https://www.sec.gov/Archives/edgar/data/{int(c)}/{acc.replace('-', '')}/{r['primaryDocument'][i]}"}); n += 1
+                time.sleep(0.12)
+            except Exception as e:
+                DIAG.append("edgar " + t + ": " + repr(e)[:80])
+                if len(DIAG) > 4: break
         fund["filings"] = sorted(fl, key=lambda r: r["when"], reverse=True)[:80]
         json.dump(fund, open("fundamentals.json", "w"), separators=(",", ":"))
     out["filings"] = fund.get("filings") or out.get("filings")
