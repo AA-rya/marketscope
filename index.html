@@ -156,7 +156,7 @@ let screenData=store.get('screen',null)||parseCSV(SAMPLE_SCREEN);
 let sectData=store.get('sect',null)||parseCSV(SAMPLE_SECT);
 let flowData=store.get('flow',null)||parseCSV(SAMPLE_FLOW);
 let usingSample={screen:!store.get('screen',null),sect:!store.get('sect',null),flow:!store.get('flow',null)};
-const sampleTag=k=>usingSample[k]?'<span class="pill warn">illustrative sample data — import real CSV</span>':'<span class="pill live">your data</span>';
+const sampleTag=k=>usingSample[k]?'<span class="pill warn">illustrative sample data — import real CSV</span>':(store.get(k,null)?'<span class="pill live">your imported data</span>':'<span class="pill live">live data</span>');
 
 /* ---------- tabs (drag to reorder) ---------- */
 const MODS={about:{t:'How it works',r:renderAbout},screener:{t:'Screener',r:renderScreener},sim:{t:'Rate Simulator',r:renderSim},viz:{t:'Flow Map',r:renderViz}};
