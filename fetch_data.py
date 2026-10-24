@@ -93,7 +93,8 @@ def region_in(name, gulf_from_row):
 def build_flow():
     m1, imp = eia_table(IMP_URL); m2, exp = eia_table(EXP_URL)
     n = min(len(m1), len(m2)); months = m1[:n]
-    if n < 3 or "Canada" not in imp: raise RuntimeError("EIA table not parsed")
+    if n < 3 or "Canada" not in imp:
+        raise RuntimeError(f"EIA table not parsed: months={m1[:3]}/{m2[:3]} imp_rows={len(imp)} exp_rows={len(exp)} first={list(imp)[:3]}")
     imports = {"Persian Gulf": imp.get("Persian Gulf", [0] * n)[:n]}
     for name, v in imp.items():
         if name in SKIP: continue
