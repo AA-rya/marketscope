@@ -1,8 +1,12 @@
 name: update-data
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "3,33 * * * *"
   workflow_dispatch:
+  push:
+    paths:
+      - fetch_data.py
+      - .github/workflows/update-data.yml
 permissions:
   contents: write
 concurrency:
@@ -11,16 +15,22 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 58
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install yfinance pandas
-      - run: python fetch_data.py
-      - name: Commit if changed
+      - name: Collect every 5 minutes for about 45 minutes (GitHub's own cron is too unreliable to call every 5 min)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.json fundamentals.json
-          git diff --cached --quiet || (git commit -m "Update market data" && git pull --rebase -q && git push)
+          START=$(date +%s)
+          while true; do
+            python fetch_data.py || true
+            git add data.json fundamentals.json
+            git diff --cached --quiet || (git commit -q -m "Update market data" && git pull --rebase -q && git push -q) || true
+            [ $(( $(date +%s) - START )) -gt 2700 ] && break
+            sleep 240
+          done
