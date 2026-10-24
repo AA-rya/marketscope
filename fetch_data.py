@@ -1,18 +1,21 @@
 """Collects public market data and writes data.json for the site. No API keys.
 Sources: Yahoo Finance (via yfinance), US Treasury (daily yield curve), US EIA (oil import/export tables)."""
-import json, os, re, statistics, urllib.request, warnings, datetime as dt
+import json, os, re, statistics, time, urllib.request, warnings, datetime as dt
 warnings.filterwarnings("ignore")
 DIAG = []
 from html.parser import HTMLParser
 
-UNIVERSE = """AAPL MSFT NVDA GOOGL META AVGO ORCL CRM ADBE CSCO INTC
-NEE DUK SO D AEP XEL EXC
-XOM CVX COP EOG SLB OXY PSX
-JPM BAC WFC GS MS C SCHW
-PLD AMT EQIX O SPG PSA
-JNJ UNH PFE MRK ABBV LLY TMO
-AMZN TSLA HD MCD NKE SBUX LOW
-CAT HON UPS GE DE LMT RTX""".split()
+UNIVERSE = """AAPL MSFT NVDA GOOGL META AVGO ORCL CRM ADBE CSCO INTC AMD QCOM TXN IBM NOW INTU AMAT MU
+NEE DUK SO D AEP XEL EXC SRE PCG
+XOM CVX COP EOG SLB OXY PSX MPC VLO KMI WMB
+JPM BAC WFC GS MS C SCHW BLK AXP USB PNC V MA
+PLD AMT EQIX O SPG PSA WELL CCI DLR
+JNJ UNH PFE MRK ABBV LLY TMO ABT AMGN BMY GILD ISRG MDT
+AMZN TSLA HD MCD NKE SBUX LOW TGT BKNG F GM
+CAT HON UPS GE DE LMT RTX BA MMM UNP FDX
+KO PEP PG WMT COST PM MO CL
+NFLX DIS CMCSA T VZ TMUS
+LIN SHW APD NEM FCX""".split()
 
 QUOTES = [("S&P 500", "^GSPC"), ("Nasdaq", "^IXIC"), ("Dow", "^DJI"), ("Russell 2000", "^RUT"), ("VIX", "^VIX"),
           ("US dollar index", "DX-Y.NYB"), ("Gold", "GC=F"), ("Copper", "HG=F"), ("Natural gas", "NG=F"),
@@ -71,8 +74,8 @@ class Rows(HTMLParser):
         super().close(); self._end_row()
 
 
-def get(url, timeout=40):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,text/csv,*/*", "Accept-Language": "en-US,en;q=0.9"})
+def get(url, timeout=40, ua=None):
+    req = urllib.request.Request(url, headers={"User-Agent": ua or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,text/csv,*/*", "Accept-Language": "en-US,en;q=0.9"})
     return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "replace")
 
 
@@ -161,7 +164,7 @@ def main():
     if os.path.exists("data.json"):
         try: old = json.load(open("data.json"))
         except Exception: pass
-    for k in ("rates", "oil", "market", "curve", "flow", "screen", "sect", "hist", "hd", "news"): out[k] = old.get(k)
+    for k in ("rates", "oil", "market", "curve", "flow", "screen", "sect", "hist", "hd", "news", "filings", "feargreed", "trending"): out[k] = old.get(k)
     out["rates"], out["oil"] = out["rates"] or {}, out["oil"] or {}
 
     # yields + oil history
@@ -227,56 +230,101 @@ def main():
     try: out["flow"] = build_flow()
     except Exception as e: print("flow fail", e); DIAG.append("flow: " + repr(e)[:300])
 
-    # stocks: fundamentals cached (slow), prices refreshed every run (fast)
+    # stocks: fundamentals cached (slow, 6 h), prices refreshed every run (fast)
     fund = {}
-    try:
-        fund = json.load(open("fundamentals.json"))
+    try: fund = json.load(open("fundamentals.json"))
     except Exception: pass
     age = 1e9
     if fund.get("t"): age = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(fund["t"])).total_seconds()
-    if age > 6 * 3600 or not fund.get("d"):
-        d = fund.get("d", {})
+    if age > 6 * 3600 or not fund.get("d") or fund.get("v") != 3 or any(t not in fund["d"] for t in UNIVERSE):
+        d = fund.get("d", {}) if fund.get("v") == 3 else {}
         for t in UNIVERSE:
             try:
                 i = yf.Ticker(t).info
-                d[t] = {"sector": i.get("sector"), "eps": num(i.get("trailingEps")), "roe": num(i.get("returnOnEquity")),
-                        "de": num(i.get("debtToEquity")), "dps": num(i.get("dividendRate")) or 0.0,
-                        "debt": num(i.get("totalDebt")), "ebitda": num(i.get("ebitda"))}
+                tgt, px_ = num(i.get("targetMeanPrice")), num(i.get("currentPrice")) or num(i.get("regularMarketPrice"))
+                d[t] = {"name": i.get("shortName") or i.get("longName") or t, "sector": i.get("sector"), "eps": num(i.get("trailingEps")),
+                        "roe": num(i.get("returnOnEquity")), "de": num(i.get("debtToEquity")), "dps": num(i.get("dividendRate")) or 0.0,
+                        "debt": num(i.get("totalDebt")), "ebitda": num(i.get("ebitda")), "cash": num(i.get("totalCash")),
+                        "ni": num(i.get("netIncomeToCommon")), "rev": num(i.get("totalRevenue")), "mcap": num(i.get("marketCap")),
+                        "fpe": num(i.get("forwardPE")), "pm": num(i.get("profitMargins")), "rg": num(i.get("revenueGrowth")),
+                        "beta": num(i.get("beta")), "tgt": tgt, "rec": num(i.get("recommendationMean")),
+                        "ed": (dt.datetime.fromtimestamp(i["earningsTimestamp"], dt.timezone.utc).strftime("%Y-%m-%d") if i.get("earningsTimestamp") else None)}
             except Exception as e: print("info skip", t, e)
-        fund = {"t": out["updated"], "d": d}
+        fund = {"t": out["updated"], "v": 3, "d": d}
+        # SEC EDGAR: latest 8-K filings per company (public Atom feed, no key)
+        fl = []
+        for t in UNIVERSE:
+            try:
+                import xml.etree.ElementTree as ET
+                x = get(f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={t}&type=8-K&dateb=&owner=include&count=3&output=atom", 20, "Marketscope student project (github.com/AA-rya/marketscope)")
+                ns = {"a": "http://www.w3.org/2005/Atom"}
+                for e in ET.fromstring(x).findall("a:entry", ns)[:2]:
+                    link = e.find("a:link", ns); summ = (e.findtext("a:summary", "", ns) or "")
+                    time.sleep(0.12)
+                    items = re.findall(r"Items?[^<]*", re.sub(r"<[^>]+>", " ", summ))
+                    fl.append({"t": t, "form": "8-K", "when": (e.findtext("a:updated", "", ns) or "")[:10], "url": link.get("href") if link is not None else "",
+                               "items": re.sub(r"\s+", " ", items[0]).strip()[:140] if items else ""})
+            except Exception as e: DIAG.append("edgar " + t + ": " + repr(e)[:80]); 
+            if len(DIAG) > 6: break
+        fund["filings"] = sorted(fl, key=lambda r: r["when"], reverse=True)[:80]
         json.dump(fund, open("fundamentals.json", "w"), separators=(",", ":"))
+    out["filings"] = fund.get("filings") or out.get("filings")
     try:
-        px = yf.download(UNIVERSE, period="1y", interval="1d", progress=False, auto_adjust=False, threads=True)["Close"]
+        import numpy as np
+        dl = yf.download(UNIVERSE, period="1y", interval="1d", progress=False, auto_adjust=False, threads=True)
+        px, vol = dl["Close"], dl["Volume"]
         screen, raw, hist = [], [], {}
         pxf = px.ffill()
         hidx = list(pxf.index[-252:][::2])
         out["hd"] = [d.strftime("%Y-%m-%d") for d in hidx]
+        t10 = out["rates"].get("DGS10", [[0, 4.0]])[-1][1]; cod = (t10 + 2.0) / 100   # assumed cost of debt = 10y + 2pts
         for t in UNIVERSE:
             f = fund["d"].get(t)
             if not f or t not in px or not f.get("sector"): continue
             h = px[t].dropna()
             if len(h) < 200 or not f.get("eps") or f["eps"] <= 0 or f.get("roe") is None or f.get("de") is None: continue
             price = float(h.iloc[-1])
-            screen.append({"ticker": t, "sector": f["sector"], "price": round(price, 2), "pe": round(price / f["eps"], 1),
-                           "roe": round(f["roe"] * 100, 1), "debt_equity": round(f["de"] / 100, 2),
-                           "div_yield": round(f["dps"] / price * 100, 2), "mom_1y": round((price / float(h.iloc[0]) - 1) * 100, 1),
-                           "d1": round((price / float(h.iloc[-2]) - 1) * 100, 2) if len(h) > 1 else 0.0})
-            hist[t] = [round(float(v), 2) for v in pxf[t].loc[hidx].tolist()]
+            delta = h.diff().tail(14); up_, dn_ = delta.clip(lower=0).mean(), (-delta.clip(upper=0)).mean()
+            rsi = 100.0 if dn_ == 0 else 100 - 100 / (1 + up_ / dn_)
+            hi, lo = float(h.max()), float(h.min())
+            v = vol[t].dropna() if t in vol else None
+            rv = round(float(v.iloc[-1] / v.tail(21).iloc[:-1].mean()), 2) if v is not None and len(v) > 22 and v.tail(21).iloc[:-1].mean() > 0 else None
+            g = lambda k, m=1, d=1: round(f[k] * m, d) if f.get(k) is not None else None
+            row = {"ticker": t, "name": f.get("name"), "sector": f["sector"], "price": round(price, 2), "pe": round(price / f["eps"], 1),
+                   "roe": round(f["roe"] * 100, 1), "debt_equity": round(f["de"] / 100, 2),
+                   "div_yield": round(f["dps"] / price * 100, 2), "mom_1y": round((price / float(h.iloc[0]) - 1) * 100, 1),
+                   "d1": round((price / float(h.iloc[-2]) - 1) * 100, 2) if len(h) > 1 else 0.0,
+                   "mcap": g("mcap", 1e-9, 1), "fpe": g("fpe"), "pm": g("pm", 100), "rg": g("rg", 100), "beta": g("beta", 1, 2),
+                   "up": round((f["tgt"] / price - 1) * 100, 1) if f.get("tgt") else None, "rec": g("rec", 1, 2),
+                   "rsi": round(float(rsi), 0), "pos52": round((price - lo) / (hi - lo) * 100, 0) if hi > lo else None,
+                   "ma200": round((price / float(h.tail(200).mean()) - 1) * 100, 1), "rv": rv, "ed": f.get("ed"),
+                   "debt": g("debt", 1e-9, 2), "cash": g("cash", 1e-9, 2), "ni": g("ni", 1e-9, 2), "ebitda": g("ebitda", 1e-9, 2), "rev": g("rev", 1e-9, 1)}
+            screen.append({k: v_ for k, v_ in row.items() if v_ is not None})
+            hist[t] = [round(float(x), 2) for x in pxf[t].loc[hidx].tolist()]
             if f.get("debt") and f.get("ebitda") and f["ebitda"] > 0: raw.append((f["sector"], f["debt"], f["ebitda"]))
         if len(screen) >= 20:
             out["screen"] = screen; out["hist"] = hist
-            t10 = out["rates"].get("DGS10", [[0, 4.0]])[-1][1]; cod = (t10 + 2.0) / 100   # assumed cost of debt = 10y + 2pts
             sect = []
-            for s in sorted({r[0] for r in raw}):
-                rows = [r for r in raw if r[0] == s]
+            for s_ in sorted({r[0] for r in raw}):
+                rows = [r for r in raw if r[0] == s_]
                 if len(rows) < 2: continue
-                sect.append({"sector": s, "debt_ebitda": round(statistics.median(r[1] / r[2] for r in rows), 1),
-                             "floating_share": FLOAT.get(s, .3),
+                sect.append({"sector": s_, "debt_ebitda": round(statistics.median(r[1] / r[2] for r in rows), 1),
+                             "floating_share": FLOAT.get(s_, .3),
                              "interest_cover": round(statistics.median(r[2] / (r[1] * cod) for r in rows), 1),
-                             "equity_duration": DUR.get(s, 8.0)})
+                             "equity_duration": DUR.get(s_, 8.0)})
             if len(sect) >= 4: out["sect"] = sect
         else: print("too few stocks; keeping previous")
-    except Exception as e: print("stocks fail", e)
+    except Exception as e: print("stocks fail", e); DIAG.append("stocks: " + repr(e)[:200])
+
+    # market sentiment (public endpoints; skipped quietly if they refuse the request)
+    try:
+        j = json.loads(get("https://production.dataviz.cnn.io/index/fearandgreed/graphdata", 20))
+        fg = j["fear_and_greed"]; out["feargreed"] = {"score": round(fg["score"]), "rating": fg["rating"], "prev": round(fg.get("previous_close", fg["score"]))}
+    except Exception as e: DIAG.append("feargreed: " + repr(e)[:80])
+    try:
+        j = json.loads(get("https://api.stocktwits.com/api/2/trending/symbols.json", 20))
+        out["trending"] = [{"t": x["symbol"], "name": x.get("title", "")} for x in j["symbols"][:12]]
+    except Exception as e: DIAG.append("trending: " + repr(e)[:80])
 
     out["diag"] = DIAG
     json.dump(out, open("data.json", "w"), separators=(",", ":"))

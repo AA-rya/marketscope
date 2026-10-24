@@ -94,6 +94,15 @@ button.mini{padding:4px 10px;font-size:12px;border-radius:8px}
 #helpSugg{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}#helpSugg .q{display:inline-block;margin:0;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--ink);background:var(--bg)}
 .hin{display:flex;gap:8px}.hin input{flex:1}
 .mvr{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}.nw{padding:9px 0;border-bottom:1px solid var(--line)}.nw a{color:var(--ink);font-weight:600;text-decoration:none}.nw a:hover{color:var(--acc)}
+
+.rule{display:grid;grid-template-columns:1fr 66px 66px 26px;gap:6px;align-items:center;margin:8px 0}.rl{font-size:12px;font-weight:600;color:var(--ink);line-height:1.25;cursor:help}.rule input{padding:6px 8px;width:100%}.mini.x{padding:2px 8px}
+.scen{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.scen .chip{font-size:12px;padding:6px 10px}.clk{cursor:pointer}.clk:hover td{background:color-mix(in srgb,var(--acc) 6%,transparent)}tr.sel td{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+#pre{margin-top:10px}#pre .chip{font-size:12px;padding:6px 11px}
+.pipe{display:flex;align-items:stretch;gap:0;margin:16px 0 10px;flex-wrap:wrap}.stg{flex:1;min-width:130px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;transition:all .3s;display:flex;flex-direction:column;gap:4px}.stg span{font-size:11.5px;color:var(--mute);line-height:1.35}.stg .si{font-size:22px}.stg.hot{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 8px 20px -10px var(--acc)}
+.arr{width:26px;display:flex;align-items:center;justify-content:center}.arr i{width:100%;height:2px;background:repeating-linear-gradient(90deg,var(--acc) 0 5px,transparent 5px 10px);background-size:10px 2px;animation:fl .8s linear infinite}@keyframes fl{to{background-position:10px 0}}
+.cd{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;padding:10px 14px;background:var(--bg);border-radius:10px;border:1px dashed var(--line)}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.demo{background:var(--bg);border-radius:14px;padding:14px;border:1px solid var(--line)}.dm{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.dm:last-child{border:0}.how{padding-left:18px;line-height:1.55;font-size:13.5px}
+@media(max-width:700px){.arr{display:none}.stg{min-width:45%;margin:4px}}
 </style>
 </head>
 <body>
@@ -173,29 +182,41 @@ function tabEl(k){const d=document.createElement('div');d.className='tab'+(k===c
 function drawTabs(){const n=$('#tabs'),m=$('#tabsBottom');n.innerHTML='';m.innerHTML='';order.forEach(k=>n.appendChild(tabEl(k)));m.appendChild(tabEl('about'))}
 
 /* ---------- HOW IT WORKS ---------- */
+let aboutT=null,aboutTab='markets';
+const TABINFO={
+ markets:{ic:'📈',t:'Markets',what:'The big picture, right now.',how:['Prices for stock indexes, gold, oil, the dollar and Bitcoin come from Yahoo Finance.','The yield curve (what the U.S. government pays to borrow) comes straight from the Treasury.','Fear & Greed is CNN\'s mood gauge. Headlines come from Yahoo Finance and the SEC.'],use:'Glance here first. Rising yields mean borrowing just got pricier — the Rate Simulator tells you who that hurts.',demo:()=>{const m=live&&live.market&&live.market.slice(0,3);return m?m.map(q=>`<div class="dm"><span>${q.name}</span><b>${q.price>=1000?fmt(q.price,0):fmt(q.price,2)}</b><i class="${q.d1>=0?'up':'dn'}">${pc(q.d1)}</i></div>`).join(''):'<span class="note">Loading live prices…</span>'}},
+ screener:{ic:'🔎',t:'Screener',what:'Finds stocks that fit rules you set — and alerts you when a new one does.',how:['A background program pulls prices, profits, debt, analyst targets and technical signals for hundreds of large U.S. companies every few minutes.','Your rules (e.g. P/E under 20, ROE over 15%) are checked against every company in your browser, instantly.','Turn on alerts and a notification pops up the moment a company starts to qualify. SEC filings (8-Ks) for matching companies show up beside it.'],use:'Start with a preset (Value, Quality, Dividends, Momentum), then tweak the min/max boxes.',demo:()=>{const n=screenData.length,h=screenData.filter(r=>r.pe!=null&&r.pe<20&&r.roe>15);return n?`<div class="dm"><span>Tracked companies</span><b>${n}</b></div><div class="dm"><span>P/E under 20 and ROE over 15%</span><b>${h.length}</b></div><div class="note">${h.slice(0,8).map(r=>r.ticker).join(' · ')}</div>`:'<span class="note">Loading…</span>'}},
+ watch:{ic:'⭐',t:'Watchlist',what:'Your personal list, with price alerts.',how:['Star any company from the Screener or a stock page.','Set a rule like "alert me if AAPL goes above $300".','Your list lives in your own browser — nothing is sent anywhere.'],use:'Keep this tab open and you\'ll get a pop-up when a price crosses your line.',demo:()=>{const w=store.get('watch',[]);return `<div class="dm"><span>Stocks on your list</span><b>${w.length}</b></div>`}},
+ sim:{ic:'🎚️',t:'Rate Simulator',what:'Plays out "what if the Fed moved rates?" for whole industries or single companies.',how:['Move the slider (−5 to +5 percentage points). Stock price effect = −(how rate-sensitive the industry is) × the rate change.','For profits: companies with floating-rate debt pay more interest when rates rise; those holding cash earn more. We subtract the extra cost, apply 21% tax, and compare it with today\'s profit.','Coverage = operating profit ÷ interest bill. Under 2× means a company is straining.'],use:'Pick a scenario button, click an industry in the table to see every company, or look up a ticker.',demo:()=>{if(!sectData.length)return '<span class="note">Loading…</span>';const rows=[100,-100].map(b=>{const s=[...sectData].sort((a,c)=>b>0?c.equity_duration-a.equity_duration:c.equity_duration-a.equity_duration)[0];return `<div class="dm"><span>If rates ${b>0?'rise':'fall'} 1 point, ${s.sector} stocks</span><b class="${b>0?'dn':'up'}">${pc(-s.equity_duration*b/100,1)}</b></div>`});return rows.join('')}},
+ viz:{ic:'🛢️',t:'Oil Flow Map',what:'Follows U.S. crude oil from source to destination.',how:['Imports by country and exports by region come from the U.S. Energy Information Administration.','Band thickness = barrels per day. Pick two months to compare how flows changed.','Checked every few minutes; EIA publishes new months about monthly.'],use:'Choose the month at the top, then hover a band to read its volume.',demo:()=>{const f=live&&live.flow;return f?`<div class="dm"><span>Latest month in the data</span><b>${f.month||f.latest||'live'}</b></div>`:'<span class="note">Loading…</span>'}}
+};
+function nextRunInfo(){if(!live)return{last:null,next:null};const u=new Date(live.updated);let n=new Date(+u+5*60000);while(n<Date.now())n=new Date(+n+5*60000);return{last:u,next:n}}
 function renderAbout(){
-  const l=k=>`<a href="#" data-go="${k}" class="go">${MODS[k].t} &rarr;</a>`;
+  const stages=[['🌐','Sources','Yahoo Finance, U.S. Treasury, EIA, SEC EDGAR, CNN, RSS news'],['⚙️','Collector','A GitHub robot runs every ~4 min, cleans the data'],['💾','data.json','Saved in this site\'s public folder'],['🖥️','Your browser','Checks for new data every 60 s, redraws what you see'],['🔔','Alerts','Compares to your rules & watchlist, pops up a notice']];
   $('#view').innerHTML=`<div>
-  <div class="hero"><h2>See the market<br>before it moves.</h2><p>Marketscope puts everything in one place: what markets are doing right now, which stocks fit your rules, a watchlist with price alerts, what a change in interest rates could do to each industry, and where the oil the U.S. relies on is actually coming from.</p></div>
-  <div class="grid3">
-  <div class="card"><div class="step">1</div><h2>${l('markets')}</h2><p>Today's snapshot: stock indexes, the dollar, gold, oil, Bitcoin and the Treasury yield curve. Each tile shows the price, today's move and a one-month trend line.</p><p><b>How to use it:</b> glance at it first. If the yield curve line sits well above where it was a month ago, borrowing costs just rose — that is what the Rate Simulator tests.</p></div>
-  <div class="card"><div class="step">2</div><h2>${l('screener')}</h2><p>You decide what a "good" stock means — not too expensive, solid profits, little debt — and it highlights every company that fits.</p><p><b>How to use it:</b> change the boxes on the left. Use the search and industry menu to narrow the list, click any column title to sort, and tick <i>Alert me</i> to get a pop-up the moment a new company starts passing.</p></div>
-  <div class="card"><div class="step">3</div><h2>${l('watch')}</h2><p>Follow the companies you care about and set price alerts, like "tell me if AAPL goes above $300".</p><p><b>How to use it:</b> click a company in the Screener to see its chart and press <i>Add to watchlist</i> (or click the star). Add an alert on the Watchlist page and leave the site open — you get a pop-up when a refresh crosses your price.</p></div>
-  <div class="card"><div class="step">4</div><h2>${l('sim')}</h2><p>Pretend the Federal Reserve moves rates and see which industries are hurt or helped, and whether companies could still afford their interest bills.</p><p><b>How to use it:</b> drag the slider or tap a preset (+50 means rates rise half a percentage point). Longer bars to the left = bigger estimated loss. Then type your own mix of industries into <i>Your portfolio</i> to see the effect on you.</p></div>
-  <div class="card"><div class="step">5</div><h2>${l('viz')}</h2><p>A picture of U.S. crude oil: which countries send it in, and which regions it's shipped out to. Thicker band = more barrels.</p><p><b>How to use it:</b> pick two months with the menus, then flip between <i>Before</i>, <i>After</i> and <i>Change</i> to see who gained or lost market share. The headline above the chart is written automatically from the numbers.</p></div>
-  </div><div style="height:20px"></div>
-  <div class="card"><h2>Where the numbers come from</h2><p class="note">Everything below is real, public data. Nothing on the site is made up or hand-typed.</p>
-  <table class="src-tbl"><tr><th class="l">What</th><th class="l">Source</th><th class="l">How often it updates</th></tr>
-  <tr><td class="l">Index, commodity, currency, crypto prices; stock prices; headlines</td><td class="l">Yahoo Finance</td><td class="l">Pulled every 5 minutes (prices run roughly 15 minutes behind the exchanges)</td></tr>
-  <tr><td class="l">Treasury yield curve</td><td class="l">U.S. Treasury daily par yield curve (falls back to Yahoo yields)</td><td class="l">Every 5 minutes; Treasury itself publishes once per business day</td></tr>
-  <tr><td class="l">Company profits, debt, dividends</td><td class="l">Company filings via Yahoo Finance</td><td class="l">Every 6 hours (they only change when companies report)</td></tr>
-  <tr><td class="l">Oil flows (imports by country, exports by region)</td><td class="l">U.S. Energy Information Administration (EIA)</td><td class="l">Checked every 5 minutes; EIA publishes new months about once a month</td></tr>
-  <tr><td class="l">Average interest rates</td><td class="l">U.S. Treasury FiscalData</td><td class="l">Fetched live by your browser</td></tr></table>
-  <p><b>How the updating works:</b> a small program on GitHub runs by itself every few minutes, collects the sources above and saves them to this site. Your browser checks for the newest copy every minute and redraws whatever you're looking at — no refresh needed. The green badge at the bottom-left shows how fresh it is.</p></div>
-  <div class="card"><h2>Bring your own data</h2><p>Every tool has an <i>Import CSV</i> button and a <i>Download</i> button showing the exact layout (it exports the live data, so you can edit it or add history). Importing a file replaces the live view for that tool until you press <i>Switch back to live data</i>. Imports are saved only in your own browser. This is how you load historical data from FRED, Bloomberg or your own research.</p></div>
-  <div class="card"><h2>Plain-English glossary</h2><p><b>P/E</b> — price you pay per $1 of yearly profit; lower = cheaper. <b>ROE</b> — profit earned on shareholders' money. <b>Debt/equity</b> — how much of the business is funded by borrowing. <b>Basis point (bp)</b> — one hundredth of a percentage point; 100 bp = 1%. <b>Interest coverage</b> — how many times a company's profit covers its interest bill; under about 2× is stressed. <b>Duration</b> — how sharply a stock's price reacts to rate changes. <b>Yield curve</b> — interest rates from short to long loans; when short rates are above long rates it is "inverted" and often signals a slowdown. <b>mb/d</b> — million barrels per day.</p></div>
-  <div class="card"><h2>What to keep in mind</h2><p>The simulator is a first-order estimate, not a forecast: the price effect is duration × rate change and ignores that rates usually move for a reason (e.g. a strong economy can lift stocks even as rates rise). Floating-debt share and duration per industry are stated assumptions; debt, profits and prices are live. Oil flow numbers are monthly and reported with a lag. Nothing here is investment advice.</p><p>Questions? Press <i>Help / Ask</i> any time — it answers from the live numbers on the page (try "what is the S&P at?" or "tell me about NVDA"), can jump you to any tab, and can set the simulator for you ("what if rates rise 200 bp"). If it can't answer, it opens a pre-filled question to the project team.</p></div></div>`;
-  document.querySelectorAll('[data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.go)});
+  <div class="hero"><h2>See the market<br>before it moves.</h2><p>Marketscope pulls real, public data every few minutes and lets you screen stocks, set alerts, simulate interest-rate scenarios and watch oil flow. Click around this page — it's live.</p></div>
+  <div class="card"><h2>The live pipeline</h2><div class="note">This is the actual path every number takes to reach your screen.</div>
+  <div class="pipe" id="pipe">${stages.map((s,i)=>`<div class="stg" style="--i:${i}"><div class="si">${s[0]}</div><b>${s[1]}</b><span>${s[2]}</span></div>${i<stages.length-1?'<div class="arr"><i></i></div>':''}`).join('')}</div>
+  <div class="cd" id="cd"></div></div>
+  <div class="card"><h2>What each tab does</h2><div class="seg" id="tsel">${Object.keys(TABINFO).map(k=>`<button class="chip ${k===aboutTab?'on':''}" data-k="${k}">${TABINFO[k].ic} ${TABINFO[k].t}</button>`).join('')}</div><div id="tinfo"></div></div>
+  <div class="card"><h2>Where the numbers come from</h2><p class="note">Everything below is real, public data. Nothing is made up or hand-typed.</p>
+  <div class="tw"><table class="src-tbl"><tr><th class="l">What</th><th class="l">Source</th><th class="l">Updates</th></tr>
+  <tr><td class="l">Index, commodity, currency, crypto and stock prices; analyst targets; technical signals</td><td class="l">Yahoo Finance</td><td class="l">Every ~5 min (prices ~15 min behind exchanges)</td></tr>
+  <tr><td class="l">Company profits, debt, cash, dividends</td><td class="l">Company filings via Yahoo Finance</td><td class="l">Every 6 hours</td></tr>
+  <tr><td class="l">Recent company filings (8-K news events)</td><td class="l">SEC EDGAR</td><td class="l">Every 6 hours</td></tr>
+  <tr><td class="l">Treasury yield curve</td><td class="l">U.S. Treasury</td><td class="l">Every ~5 min; Treasury posts daily</td></tr>
+  <tr><td class="l">Oil imports and exports</td><td class="l">U.S. EIA</td><td class="l">Checked ~5 min; new months monthly</td></tr>
+  <tr><td class="l">Average interest rates</td><td class="l">Treasury FiscalData</td><td class="l">Fetched live by your browser</td></tr>
+  <tr><td class="l">Fear &amp; Greed, trending tickers, headlines</td><td class="l">CNN, StockTwits, Yahoo/RSS</td><td class="l">Every ~5 min</td></tr></table></div></div>
+  <div class="grid3"><div class="card"><h2>Bring your own data</h2><p>Screener and Simulator each have <i>Import CSV</i> and <i>Download</i>. Download shows the exact layout; import replaces the live view for that tool until you switch back.</p></div>
+  <div class="card"><h2>Glossary</h2><p><b>P/E</b> price per $1 of yearly profit. <b>ROE</b> profit earned on shareholders' money. <b>Debt/equity</b> borrowing vs. owners' money. <b>Basis point</b> 0.01 percentage point (100 bp = 1 pt). <b>Duration</b> how strongly a price reacts to rate changes. <b>Coverage</b> profit ÷ interest. <b>RSI</b> momentum gauge: over 70 = hot, under 30 = beaten down.</p></div>
+  <div class="card"><h2>Keep in mind</h2><p>The simulator is a stress test, not a forecast. It uses simple, stated assumptions per industry and ignores why rates moved. Prices are delayed ~15 minutes. Educational only — not investment advice.</p></div></div></div>`;
+  const draw=()=>{const k=aboutTab,t=TABINFO[k];$('#tinfo').innerHTML=`<div class="row" style="margin-top:12px"><div class="col"><h3>${t.ic} ${t.t} — ${t.what}</h3><ol class="how">${t.how.map(x=>`<li>${x}</li>`).join('')}</ol><p><b>Try this:</b> ${t.use}</p><button class="pri" data-go="${k}">Open ${t.t} →</button></div><div class="col demo"><div class="note">Live right now</div>${t.demo()}</div></div>`;
+    document.querySelectorAll('#tinfo [data-go]').forEach(a=>a.onclick=()=>go(a.dataset.go));document.querySelectorAll('#tsel .chip').forEach(c=>c.classList.toggle('on',c.dataset.k===k))};
+  document.querySelectorAll('#tsel .chip').forEach(c=>c.onclick=()=>{aboutTab=c.dataset.k;draw()});draw();
+  clearInterval(aboutT);const tick=()=>{if(cur!=='about'||!$('#cd')){clearInterval(aboutT);return}const{last,next}=nextRunInfo();if(!last){$('#cd').textContent='Connecting…';return}const s=Math.max(0,Math.round((next-Date.now())/1000));
+    $('#cd').innerHTML=`<span><b>Last refresh</b> ${last.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'})} (${ago(live.updated)})</span><span><b>Next expected</b> ${next.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} · in ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}</span>`;
+    const i=Math.floor(Date.now()/900)%5;document.querySelectorAll('#pipe .stg').forEach((e,j)=>e.classList.toggle('hot',j===i))};tick();aboutT=setInterval(tick,500);
 }
 
 /* ---------- MARKETS ---------- */
@@ -225,29 +246,74 @@ function drawMarkets(){
   const mv=screenData.filter(r=>r.d1!=null).sort((a,b)=>b.d1-a.d1),up=mv.slice(0,5),dn=mv.slice(-5).reverse();
   const mvh=mv.length?`<div class="card"><h2>Biggest movers today</h2><div class="row" style="gap:18px;margin-top:6px"><div class="col" style="min-width:160px"><h3>Up</h3>${up.map(r=>`<div class="mvr"><a href="#" data-o="${r.ticker}" class="go">${r.ticker}</a><span>${pc(r.d1)}</span></div>`).join('')}</div><div class="col" style="min-width:160px"><h3>Down</h3>${dn.map(r=>`<div class="mvr"><a href="#" data-o="${r.ticker}" class="go">${r.ticker}</a><span>${pc(r.d1)}</span></div>`).join('')}</div></div></div>`:'';
   const nw=live.news&&live.news.length?`<div class="card"><h2>Headlines</h2><div class="note">From Yahoo Finance. Opens the publisher's page in a new tab.</div>${live.news.slice(0,8).map(n=>`<div class="nw"><a href="${n.url}" target="_blank" rel="noopener">${n.title.replace(/</g,'&lt;')}</a><div class="note">${n.src||''}${n.t?' · '+ago(n.t):''}</div></div>`).join('')}</div>`:'';
+  const fg=live.feargreed,tr=live.trending;
+  const fgh=fg?`<div class="card"><h2>Fear &amp; Greed</h2><div class="note">CNN's 0–100 mood gauge. Low = investors scared, high = greedy.</div><div class="big">${fg.score}<small> ${fg.rating}</small></div><div class="note">Yesterday: ${fg.prev}</div></div>`:'';
+  const trh=tr&&tr.length?`<div class="card"><h2>Trending on StockTwits</h2><div class="note">Most-watched tickers right now.</div><div class="chips" style="margin-top:8px">${tr.map(x=>`<a href="#" class="chip" data-st="${x.t}">${x.t}</a>`).join('')}</div></div>`:'';
   el.innerHTML=`<div class="pagehead"><h2>Markets</h2><span class="note">Updated ${ago(live.updated)} · Yahoo Finance, ~15 min delayed</span></div>
   <div class="tiles">${mk.map(q=>`<div class="tile"><div class="tn">${q.name}</div><div class="tp">${q.name.includes('yield')?fmt(q.price,2)+'%':(q.price>=1000?fmt(q.price,0):fmt(q.price,2))}</div><div class="tc">${pc(q.d1)} <span class="note">today</span></div>${spark(q.spark,q.spark[q.spark.length-1]>=q.spark[0])}<div class="tm note">1 month ${pc(q.m1,1)}</div></div>`).join('')}</div>
   <div class="row"><div class="col">${cv}</div>
-  <div class="col">${sr.length?`<div class="card"><h2>Industry snapshot</h2><div class="note">Average 1-year price change of the ${screenData.length} large U.S. companies tracked here, by industry.</div><div style="margin-top:8px">${sr.map(r=>`<div class="hb"><div class="hl">${r.s}<span class="note"> · ${r.n}</span></div><div class="ht"><div class="hz"></div><div class="hf" style="${r.m>=0?'left:50%':'right:50%'};width:${Math.abs(r.m)/mx*50}%;background:var(--${r.m>=0?'up':'dn'})"></div></div><div class="hv">${pc(r.m,1)}</div></div>`).join('')}</div></div>`:''}</div></div>`;
+  <div class="col">${fgh}${trh}${sr.length?`<div class="card"><h2>Industry snapshot</h2><div class="note">Average 1-year price change of the ${screenData.length} large U.S. companies tracked here, by industry.</div><div style="margin-top:8px">${sr.map(r=>`<div class="hb"><div class="hl">${r.s}<span class="note"> · ${r.n}</span></div><div class="ht"><div class="hz"></div><div class="hf" style="${r.m>=0?'left:50%':'right:50%'};width:${Math.abs(r.m)/mx*50}%;background:var(--${r.m>=0?'up':'dn'})"></div></div><div class="hv">${pc(r.m,1)}</div></div>`).join('')}</div></div>`:''}</div></div>`;
+  el.querySelectorAll('[data-st]').forEach(a=>a.onclick=e=>{e.preventDefault();if(screenData.find(r=>r.ticker===a.dataset.st))openStock(a.dataset.st);else window.open('https://finance.yahoo.com/quote/'+a.dataset.st,'_blank','noopener')});
 }
 
 /* ---------- SCREENER ---------- */
-let crit=store.get('crit',{pe_max:25,roe_min:12,de_max:1.5,dy_min:0,mom_min:-100}),alertOn=store.get('alertOn',false),prevHits=new Set(),sortK='ticker',sortD=1,q='',secF='';
-const passes=r=>r.pe<=crit.pe_max&&r.roe>=crit.roe_min&&r.debt_equity<=crit.de_max&&r.div_yield>=crit.dy_min&&r.mom_1y>=crit.mom_min;
-const SCOLS=['ticker','sector','price','pe','roe','debt_equity','div_yield','mom_1y'];
+const FIELDS=[
+ {k:'pe',l:'P/E (trailing)',h:'Price per $1 of last year\'s profit. Lower = cheaper.',d:1},
+ {k:'fpe',l:'Forward P/E',h:'Price per $1 of next year\'s expected profit.',d:1},
+ {k:'roe',l:'ROE %',h:'Profit earned on shareholders\' money.',d:1},
+ {k:'pm',l:'Profit margin %',h:'Cents of profit per $1 of sales.',d:1},
+ {k:'rg',l:'Revenue growth %',h:'Sales growth vs a year ago.',d:1},
+ {k:'debt_equity',l:'Debt / equity',h:'How much of the business is funded by borrowing.',d:2},
+ {k:'div_yield',l:'Dividend yield %',h:'Yearly dividend ÷ price.',d:2},
+ {k:'mom_1y',l:'1-year price change %',h:'How far the stock moved in a year.',d:1},
+ {k:'d1',l:'Today\'s move %',h:'Change since yesterday\'s close.',d:2},
+ {k:'rsi',l:'RSI (14-day)',h:'Under 30 = oversold, over 70 = overbought.',d:0},
+ {k:'pos52',l:'Position in 52-week range',h:'0 = at the yearly low, 100 = at the yearly high.',d:0},
+ {k:'ma200',l:'Price vs 200-day average %',h:'Above 0 = in an uptrend.',d:1},
+ {k:'up',l:'Analyst upside %',h:'Average analyst price target vs today\'s price.',d:1},
+ {k:'rec',l:'Analyst rating (1 buy – 5 sell)',h:'Average Wall Street recommendation.',d:2},
+ {k:'beta',l:'Beta',h:'Swings relative to the market. Under 1 = calmer.',d:2},
+ {k:'mcap',l:'Market cap $B',h:'Total value of the company.',d:0},
+ {k:'rv',l:'Relative volume ×',h:'Today\'s trading volume vs its 20-day average.',d:2}];
+const FBY=Object.fromEntries(FIELDS.map(f=>[f.k,f]));
+const PRESETS_S={
+ 'Balanced':{pe:{hi:25},roe:{lo:12},debt_equity:{hi:1.5}},
+ 'Value':{pe:{hi:18},roe:{lo:10},debt_equity:{hi:1.5}},
+ 'Quality':{roe:{lo:20},pm:{lo:15},debt_equity:{hi:1.5}},
+ 'Dividend income':{div_yield:{lo:3},debt_equity:{hi:2},pe:{hi:25}},
+ 'Growth':{rg:{lo:10},pm:{lo:10},mom_1y:{lo:10}},
+ 'Momentum':{mom_1y:{lo:15},ma200:{lo:0},pos52:{lo:80}},
+ 'Oversold bounce':{rsi:{hi:35}},
+ 'Analyst upside':{up:{lo:15},rec:{hi:2.3}},
+ 'Calm & steady':{beta:{hi:0.8},debt_equity:{hi:2}},
+ 'Volume spike':{rv:{lo:1.8}},
+ 'Big movers today':{d1:{lo:3}}};
+let crit=store.get('crit2',PRESETS_S['Balanced']),preset=store.get('preset','Balanced'),alertOn=store.get('alertOn',false),prevHits=new Set(),sortK='mcap',sortD=-1,q='',secF='';
+const passes=r=>Object.entries(crit).every(([k,c])=>{if(c.lo==null&&c.hi==null)return true;const v=r[k];if(v==null)return false;return (c.lo==null||v>=c.lo)&&(c.hi==null||v<=c.hi)});
+const ruleText=()=>Object.entries(crit).filter(([k,c])=>FBY[k]&&(c.lo!=null||c.hi!=null)).map(([k,c])=>FBY[k].l+(c.lo!=null&&c.hi!=null?' '+c.lo+'–'+c.hi:c.lo!=null?' ≥ '+c.lo:' ≤ '+c.hi)).join(', ')||'no rules';
+const SCOLS=['ticker','sector','price','d1','mcap','pe','fpe','roe','debt_equity','div_yield','mom_1y','rsi','pos52','up'];
+const SNAME={ticker:'ticker',sector:'industry',price:'price $',d1:'today %',mcap:'cap $B',pe:'P/E',fpe:'fwd P/E',roe:'ROE %',debt_equity:'debt/eq',div_yield:'yield %',mom_1y:'1-yr %',rsi:'RSI',pos52:'52-wk pos',up:'upside %'};
+function ruleRows(){return Object.entries(crit).map(([k,c])=>FBY[k]?`<div class="rule"><div class="rl" title="${FBY[k].h}">${FBY[k].l}</div><input type="number" step="any" data-rk="${k}" data-b="lo" value="${c.lo??''}" placeholder="min"><input type="number" step="any" data-rk="${k}" data-b="hi" value="${c.hi??''}" placeholder="max"><button class="mini x" data-rx="${k}">×</button></div>`:'').join('')}
 function renderScreener(){
   const secs=[...new Set(screenData.map(r=>r.sector))].sort();
-  $('#view').innerHTML=`<div class="row"><div class="col" style="max-width:300px"><div class="card"><h2>Your rules</h2><div class="note">A company is highlighted when it meets every rule.</div>
-  ${[['pe_max','Max P/E (price per $1 of profit)',1],['roe_min','Min ROE % (profit on shareholder money)',1],['de_max','Max debt/equity',.05],['dy_min','Min dividend yield %',.1],['mom_min','Min 1-year price change %',1]].map(([k,l,s])=>`<label>${l}</label><input type="number" step="${s}" data-k="${k}" value="${crit[k]}" style="width:100%">`).join('')}
+  $('#view').innerHTML=`<div class="pagehead"><h2>Screener</h2><span class="note">Find companies that meet your rules — with live prices, analyst targets and SEC filings</span></div>
+  <details class="card howto"><summary>How to use this page</summary><ol><li><b>Pick a starting point.</b> Tap a preset (Value, Quality, Dividend income, Momentum, Oversold…) — it fills in the rules for you.</li><li><b>Tweak the rules.</b> Each rule has a min and a max box. Add more with <i>Add a rule</i>, remove one with ×. A company must meet <i>every</i> rule to be highlighted. Hover a rule name for a plain-English meaning.</li><li><b>Read the table.</b> Highlighted rows pass. Click a column title to sort, use search and the industry menu to narrow it, click a row for a price chart and details, click ☆ to watch it.</li><li><b>Get told.</b> Tick <i>Alert me</i> and a pop-up appears whenever a refresh makes a new company pass. Recent SEC filings (8-Ks) for the matches are listed below the table.</li></ol></details>
+  <div class="row"><div class="col" style="max-width:340px"><div class="card"><h2>Presets</h2><div class="chips" id="pre">${Object.keys(PRESETS_S).map(p=>`<button class="chip ${p===preset?'on':''}" data-p="${p}">${p}</button>`).join('')}</div></div>
+  <div class="card"><h2>Your rules</h2><div class="note">A company is highlighted when it meets every rule.</div><div id="rules">${ruleRows()}</div>
+  <select id="addr" style="margin-top:10px;width:100%"><option value="">+ Add a rule…</option>${FIELDS.filter(f=>!crit[f.k]).map(f=>`<option value="${f.k}">${f.l}</option>`).join('')}</select>
   <label class="chk"><input type="checkbox" id="al" ${alertOn?'checked':''}> Alert me when a new company starts passing</label></div>
   <div class="card"><h2>Data</h2><span id="srcpill">${tag('screen')}</span><div class="tools"><button id="imp">Import CSV</button><button id="exp">Download CSV</button><button id="rst">Switch back to live data</button></div>
-  <div class="note">Columns: ${SCOLS.join(', ')}. Live data refreshes about every 5 minutes (earnings and debt every 6 hours). Importing your own file overrides it until you switch back.</div></div></div>
-  <div class="col"><div class="kpis" id="kp"></div><div class="card"><div class="tools" style="margin-top:0"><h2 style="margin:0 8px 0 0">Results</h2><span id="cnt" class="pill"></span><span style="flex:1"></span><input type="text" id="q" placeholder="Search ticker" value="${q}" style="width:130px"><select id="sec"><option value="">All industries</option>${secs.map(s=>`<option ${s===secF?'selected':''}>${s}</option>`).join('')}</select></div><div id="tbl"></div><div class="src" id="rateline"></div></div></div></div>`;
-  document.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{crit[i.dataset.k]=+i.value;store.set('crit',crit);drawTbl(false)});
+  <div class="note">Live: ${screenData.length} large U.S. companies from Yahoo Finance (prices every ~5 min, fundamentals every 6 h) and SEC EDGAR (filings). Importing your own CSV overrides it until you switch back. Any column from the table can be in your file.</div></div></div>
+  <div class="col"><div class="kpis" id="kp"></div><div class="card"><div class="tools" style="margin-top:0"><h2 style="margin:0 8px 0 0">Results</h2><span id="cnt" class="pill"></span><span style="flex:1"></span><input type="text" id="q" placeholder="Search ticker or name" value="${q}" style="width:150px"><select id="sec"><option value="">All industries</option>${secs.map(s=>`<option ${s===secF?'selected':''}>${s}</option>`).join('')}</select></div><div id="tbl"></div><div class="src" id="rateline"></div></div><div id="fil"></div></div></div>`;
+  const bind=()=>{
+    document.querySelectorAll('[data-rk]').forEach(i=>i.oninput=()=>{const c=crit[i.dataset.rk];c[i.dataset.b]=i.value===''?null:+i.value;preset='Custom';store.set('crit2',crit);store.set('preset',preset);document.querySelectorAll('#pre .chip').forEach(b=>b.classList.remove('on'));drawTbl(false)});
+    document.querySelectorAll('[data-rx]').forEach(b=>b.onclick=()=>{delete crit[b.dataset.rx];preset='Custom';store.set('crit2',crit);store.set('preset',preset);renderScreener()});};bind();
+  document.querySelectorAll('#pre [data-p]').forEach(b=>b.onclick=()=>{crit=JSON.parse(JSON.stringify(PRESETS_S[b.dataset.p]));preset=b.dataset.p;store.set('crit2',crit);store.set('preset',preset);renderScreener()});
+  $('#addr').onchange=e=>{if(e.target.value){crit[e.target.value]={lo:null,hi:null};store.set('crit2',crit);renderScreener()}};
   $('#al').onchange=e=>{alertOn=e.target.checked;store.set('alertOn',alertOn);if(alertOn&&window.Notification&&Notification.permission==='default')Notification.requestPermission()};
   $('#q').oninput=e=>{q=e.target.value;drawTbl(false)};$('#sec').onchange=e=>{secF=e.target.value;drawTbl(false)};
   $('#imp').onclick=()=>importBox(d=>{screenData=d;store.set('screen',d);renderScreener()});
-  $('#exp').onclick=()=>screenData.length?dl('screener.csv',toCSV(screenData)):toast('No data yet');
+  $('#exp').onclick=()=>screenData.length?dl('screener.csv',toCSV(screenData.map(r=>{const o={};Object.keys(r).forEach(k=>{if(!/^(debt|cash|ni|ebitda|rev)$/.test(k)||true)o[k]=r[k]});return o}))):toast('No data yet');
   $('#rst').onclick=()=>{try{localStorage.removeItem('screen')}catch(e){}screenData=(live&&live.screen)||[];renderScreener();toast('Using live data')};
   prevHits=new Set(screenData.filter(passes).map(r=>r.ticker));drawTbl(false);
 }
@@ -255,52 +321,89 @@ function drawTbl(check){
   if(!$('#tbl'))return;if(!screenData.length){$('#tbl').innerHTML='<p class="note">Waiting for live data…</p>';return}
   const all=screenData,hits=new Set(all.filter(passes).map(r=>r.ticker));
   if(check&&alertOn)hits.forEach(t=>{if(!prevHits.has(t)){const m=t+' now passes your screen';toast(m);if(window.Notification&&Notification.permission==='granted')new Notification('Marketscope',{body:m})}});prevHits=hits;
-  const rows=all.filter(r=>(!q||r.ticker.toLowerCase().includes(q.toLowerCase()))&&(!secF||r.sector===secF)).sort((a,b)=>(a[sortK]>b[sortK]?1:-1)*sortD);
-  const m=all.filter(r=>hits.has(r.ticker)),av=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,top=[...m].sort((a,b)=>b.mom_1y-a.mom_1y)[0];
-  $('#kp').innerHTML=`<div class="kpi"><span>Passing</span><b>${m.length}<i> of ${all.length}</i></b></div><div class="kpi"><span>Avg P/E of matches</span><b>${m.length?fmt(av(m.map(r=>r.pe))):'–'}</b></div><div class="kpi"><span>Avg dividend yield</span><b>${m.length?fmt(av(m.map(r=>r.div_yield)))+'%':'–'}</b></div><div class="kpi"><span>Strongest 1-yr</span><b>${top?top.ticker:'–'}<i> ${top?fmt(top.mom_1y)+'%':''}</i></b></div>`;
+  const ql=q.toLowerCase();
+  const rows=all.filter(r=>(!ql||r.ticker.toLowerCase().includes(ql)||(r.name||'').toLowerCase().includes(ql))&&(!secF||r.sector===secF)).sort((a,b)=>{const x=a[sortK],y=b[sortK];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x>y?1:x<y?-1:0)*sortD});
+  const m=all.filter(r=>hits.has(r.ticker)),av=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,top=[...m].filter(r=>r.mom_1y!=null).sort((a,b)=>b.mom_1y-a.mom_1y)[0],pes=m.filter(r=>r.pe!=null),dys=m.filter(r=>r.div_yield!=null);
+  $('#kp').innerHTML=`<div class="kpi"><span>Passing</span><b>${m.length}<i> of ${all.length}</i></b></div><div class="kpi"><span>Avg P/E of matches</span><b>${pes.length?fmt(av(pes.map(r=>r.pe))):'–'}</b></div><div class="kpi"><span>Avg dividend yield</span><b>${dys.length?fmt(av(dys.map(r=>r.div_yield)))+'%':'–'}</b></div><div class="kpi"><span>Strongest 1-yr</span><b>${top?top.ticker:'–'}<i> ${top?fmt(top.mom_1y)+'%':''}</i></b></div>`;
   $('#cnt').textContent=hits.size+' pass';
-  const nm={ticker:'ticker',sector:'industry',price:'price $',pe:'P/E',roe:'ROE %',debt_equity:'debt/equity',div_yield:'yield %',mom_1y:'1-yr %'};
-  $('#tbl').innerHTML='<div class="tw"><table><tr><th></th>'+SCOLS.map(c=>`<th class="${c==='sector'?'l':''}" data-s="${c}">${nm[c]}${sortK===c?(sortD>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>'+rows.map(r=>`<tr class="${hits.has(r.ticker)?'hit':''}" data-t="${r.ticker}"><td class="star" data-st="${r.ticker}">${watch().includes(r.ticker)?'★':'☆'}</td>`+SCOLS.map(c=>`<td class="${c==='sector'?'l':''} ${c==='mom_1y'?(r[c]>=0?'up':'dn'):''}">${typeof r[c]==='number'?fmt(r[c],c==='price'?2:1):r[c]}</td>`).join('')+'</tr>').join('')+'</table></div>';
+  const cell=(r,c)=>{const v=r[c];if(v==null)return '<span class="note">–</span>';if(typeof v!=='number')return v;if(c==='d1'||c==='up'||c==='mom_1y')return pc(v,1);return fmt(v,c==='price'?2:c==='debt_equity'||c==='div_yield'?2:c==='rsi'||c==='pos52'||c==='mcap'?0:1)};
+  $('#tbl').innerHTML='<div class="tw"><table><tr><th></th>'+SCOLS.map(c=>`<th class="${c==='sector'?'l':''}" data-s="${c}">${SNAME[c]}${sortK===c?(sortD>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>'+rows.map(r=>`<tr class="${hits.has(r.ticker)?'hit':''}" data-t="${r.ticker}"><td class="star" data-st="${r.ticker}">${watch().includes(r.ticker)?'★':'☆'}</td>`+SCOLS.map(c=>`<td class="${c==='sector'?'l':''}">${c==='ticker'?`<b>${r.ticker}</b>`:cell(r,c)}</td>`).join('')+'</tr>').join('')+'</table></div>';
   document.querySelectorAll('#tbl tr[data-t]').forEach(tr=>tr.onclick=e=>{const s=e.target.closest('[data-st]');if(s){toggleWatch(s.dataset.st);s.textContent=watch().includes(s.dataset.st)?'★':'☆'}else openStock(tr.dataset.t)});
-  document.querySelectorAll('th[data-s]').forEach(th=>th.onclick=()=>{sortD=sortK===th.dataset.s?-sortD:1;sortK=th.dataset.s;drawTbl(false)});
-  const t=rate10();$('#rateline').textContent=(t?`Context: 10-yr Treasury yield ${fmt(t,2)}%. `:'')+'Highlighted rows meet every rule. Click a row for details; click the star to watch it.';
+  document.querySelectorAll('th[data-s]').forEach(th=>th.onclick=()=>{sortD=sortK===th.dataset.s?-sortD:(th.dataset.s==='ticker'||th.dataset.s==='sector'?1:-1);sortK=th.dataset.s;drawTbl(false)});
+  const t=rate10();$('#rateline').textContent=(t?`Context: 10-yr Treasury yield ${fmt(t,2)}%. `:'')+'Rules: '+ruleText()+'. Click a row for details; ☆ to watch.';
+  const fl=(live&&live.filings||[]).filter(f=>hits.has(f.t)||!hits.size).slice(0,8);
+  if($('#fil'))$('#fil').innerHTML=fl.length?`<div class="card"><h2>Recent SEC filings</h2><div class="note">8-K reports (material events) from SEC EDGAR for ${hits.size?'companies passing your rules':'tracked companies'}. Opens SEC.gov.</div>${fl.map(f=>`<div class="nw"><a href="${f.url}" target="_blank" rel="noopener"><b>${f.t}</b> — 8-K filed ${f.when}</a><div class="note">${f.items||'Current report'}</div></div>`).join('')}</div>`:'';
 }
 
 /* ---------- RATE SIMULATOR ---------- */
-let shock=store.get('shock',100),port=store.get('port',{});
-const PRESETS=[-200,-100,-50,0,50,100,200];
+let shock=store.get('shock',100),port=store.get('port',{}),cashOn=store.get('cashOn',true),simSec=store.get('simSec','');
+const SCEN=[[-300,'Crisis response','Rates slashed 3 points, like early 2020 or 2008.'],[-100,'Fed eases','A year of cuts as growth cools.'],[-25,'One small cut','The "soft landing" trim.'],[0,'No change','Today\'s rates.'],[25,'One small hike','A single quarter-point hike.'],[100,'Tightening','Four 25-pt hikes.'],[300,'2022-style shock','Roughly the pace of the 2022–23 hikes.'],[500,'Extreme (1980s)','Volcker-era territory.']];
+const TAX=.21;
+function assump(sec){return sectData.find(s=>s.sector===sec)||{floating_share:.3,equity_duration:8}}
+function calc(r){
+  const a=assump(r.sector),dr=shock/10000,cod=((rate10()??4)+2)/100,fin=r.sector==='Financial Services';
+  const o={px:-a.equity_duration*shock/100,fin};
+  if(r.debt!=null&&r.ebitda!=null&&r.debt>0&&r.ebitda>0){const i0=r.debt*cod,dInt=a.floating_share*r.debt*dr,dInc=cashOn&&r.cash?r.cash*dr:0;o.i0=i0;o.dInt=dInt;o.dInc=dInc;o.c0=r.ebitda/i0;o.c1=r.ebitda/Math.max(i0+dInt,1e-6);
+    if(!fin&&r.ni>0){o.dni=-(dInt-dInc)*(1-TAX);o.dnip=o.dni/r.ni*100}}
+  return o}
+const med=a=>{a=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null};
+function simRows(){
+  const hasCo=screenData.some(r=>r.debt!=null);
+  return sectData.map(s=>{const cs=screenData.filter(r=>r.sector===s.sector).map(r=>({r,c:calc(r)}));
+    const dI=s.floating_share*s.debt_ebitda*(shock/10000),c1=1/(1/s.interest_cover+dI);
+    return{sector:s.sector,n:cs.length,px:-s.equity_duration*shock/100,cover0:s.interest_cover,cover1:c1,dnip:hasCo?med(cs.map(x=>x.c.dnip)):null,below:hasCo?cs.filter(x=>x.c.c1!=null&&x.c.c1<2).length:null,cos:cs}})}
 function renderSim(){
   if(!sectData.length){$('#view').innerHTML=empty('Industry data');return}
-  $('#view').innerHTML=`<div class="pagehead"><h2>Rate simulator</h2><span class="note">What happens to each industry if interest rates move?</span></div>
-  <details class="card howto" open><summary>How to use this page</summary><ol><li><b>Pick a rate move.</b> Drag the slider or tap a preset. <i>+100</i> means rates rise by 1 percentage point; <i>−50</i> means they fall by half a point.</li><li><b>Read the bars.</b> Each bar is the estimated change in that industry's stock prices. Bars to the left are losses, to the right gains; longer = bigger.</li><li><b>Check the table.</b> <i>Coverage</i> is how many times profit covers the interest bill. If it drops toward 2× or lower the company is straining to pay its debt.</li><li><b>Try your own mix.</b> In <i>Your portfolio</i>, enter how much you hold in each industry to see the effect on the whole thing.</li></ol></details>
+  $('#view').innerHTML=`<div class="pagehead"><h2>Rate simulator</h2><span class="note">How would companies' financials change if interest rates moved?</span></div>
+  <details class="card howto" open><summary>How to use this page</summary><ol><li><b>Pick a rate move</b> with the slider or a scenario button: <i>+100</i> = rates up 1 percentage point, <i>−25</i> = one small cut. Small or large, up or down — anything from −500 to +500 basis points.</li><li><b>Read the industry table.</b> For each industry it shows (a) the estimated <i>stock-price</i> effect, (b) the change in <i>profit</i> after interest and tax, and (c) <i>interest coverage</i> — how many times profit covers the interest bill.</li><li><b>Drill down.</b> Click an industry to see every company in it, or look up one company to see its interest bill, interest income and profit before and after.</li><li><b>Try your own mix</b> in <i>Your portfolio</i>.</li></ol></details>
   <div class="row"><div class="col" style="max-width:340px"><div class="card"><h2>Rate change</h2><div class="big"><span id="sv"></span><small> basis points</small></div><div class="note" id="base"></div>
-  <input type="range" id="sl" min="-300" max="300" step="25" value="${shock}" style="width:100%;margin-top:12px"><div class="rng"><span>−300</span><span>0</span><span>+300</span></div>
-  <div class="chips" id="chips">${PRESETS.map(p=>`<button class="chip" data-b="${p}">${p>0?'+':''}${p}</button>`).join('')}</div></div>
-  <div class="card"><h2>Your portfolio</h2><div class="note">Type the % you hold in each industry (they don't need to add to 100).</div><div id="pf"></div><div id="pfo" class="pfo"></div></div>
+  <input type="range" id="sl" min="-500" max="500" step="5" value="${shock}" style="width:100%;margin-top:12px"><div class="rng"><span>−500</span><span>0</span><span>+500</span></div>
+  <div class="scen" id="scen">${SCEN.map(s=>`<button class="chip" data-b="${s[0]}" title="${s[2]}">${s[0]>0?'+':''}${s[0]} · ${s[1]}</button>`).join('')}</div><div class="note" id="scd" style="margin-top:8px"></div>
+  <label class="chk"><input type="checkbox" id="cash" ${cashOn?'checked':''}> Companies earn the new rate on their cash</label></div>
+  <div class="card"><h2>Look up a company</h2><div class="tools" style="margin-top:6px"><input type="text" id="lc" placeholder="Ticker, e.g. AAPL" style="width:140px" value=""><button class="pri" id="lg">Show</button></div><div id="lo"></div></div>
+  <div class="card"><h2>Your portfolio</h2><div class="note">Type the % you hold in each industry.</div><div id="pf"></div><div id="pfo" class="pfo"></div></div>
   <div class="card"><h2>Data</h2><span>${tag('sect')}</span><div class="tools"><button id="imp">Import CSV</button><button id="exp">Download CSV</button><button id="rst">Switch back to live data</button></div>
-  <div class="note">Columns: sector, debt_ebitda, floating_share, interest_cover, equity_duration. Debt and coverage come from company data; floating-rate share and duration are stated assumptions.</div></div></div>
-  <div class="col"><div class="kpis" id="kp"></div><div class="card"><h2>Estimated price effect by industry</h2><div id="bars"></div></div><div class="card"><h2>Can companies still pay their interest?</h2><div id="st"></div><p class="note" style="margin-top:10px">Price effect = −duration × rate change (first-order estimate). New coverage assumes the floating share of debt reprices immediately. It's a stress test, not a forecast.</p></div><div class="card"><h2>The 10-year yield, past year</h2><canvas id="hist" width="760" height="230"></canvas></div></div></div>`;
+  <div class="note">Industry columns: sector, debt_ebitda, floating_share, interest_cover, equity_duration. Debt, cash, profit and coverage come from company filings (Yahoo Finance); floating-rate share and duration per industry are stated assumptions.</div></div></div>
+  <div class="col"><div class="kpis" id="kp"></div><div class="card"><h2>Estimated stock-price effect by industry</h2><div id="bars"></div></div>
+  <div class="card"><h2>Change in company profit (net income) by industry</h2><div class="note">Typical (median) company. Extra interest on floating-rate debt, minus extra interest earned on cash, after 21% tax. Banks and insurers are excluded — they earn their money on rate spreads, which this simple model can't capture.</div><div id="nibars"></div></div>
+  <div class="card"><h2>Can companies still pay their interest?</h2><div class="note">Click an industry to see its companies.</div><div id="st"></div><div id="drill"></div><p class="note" style="margin-top:10px">Price effect = −duration × rate change. Interest coverage = EBITDA ÷ interest cost, assuming debt costs the 10-yr yield + 2 pts today and the floating share reprices at once. A stress test, not a forecast.</p></div>
+  <div class="card"><h2>The 10-year yield, past year</h2><canvas id="hist" width="760" height="230"></canvas></div></div></div>`;
   const apply=()=>{shock=+$('#sl').value;store.set('shock',shock);drawSim()};
-  $('#sl').oninput=apply;document.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{$('#sl').value=b.dataset.b;apply()});
+  $('#sl').oninput=apply;document.querySelectorAll('#scen [data-b]').forEach(b=>b.onclick=()=>{$('#sl').value=b.dataset.b;apply()});
+  $('#cash').onchange=e=>{cashOn=e.target.checked;store.set('cashOn',cashOn);drawSim()};
+  const look=()=>{const t=$('#lc').value.trim().toUpperCase();simCo=t;drawSim()};$('#lg').onclick=look;$('#lc').onkeydown=e=>{if(e.key==='Enter')look()};
   $('#pf').innerHTML=sectData.map(s=>`<div class="pfr"><label>${s.sector}</label><input type="number" min="0" step="5" data-pf="${s.sector}" value="${port[s.sector]??''}" placeholder="0"></div>`).join('');
   document.querySelectorAll('[data-pf]').forEach(i=>i.oninput=()=>{port[i.dataset.pf]=+i.value||0;store.set('port',port);drawSim()});
   $('#imp').onclick=()=>importBox(d=>{sectData=d;store.set('sect',d);renderSim()});$('#exp').onclick=()=>dl('sectors.csv',toCSV(sectData));
   $('#rst').onclick=()=>{try{localStorage.removeItem('sect')}catch(e){}sectData=(live&&live.sect)||[];renderSim();toast('Using live data')};
   drawSim();
 }
-function simRows(){return sectData.map(s=>{const dI=s.floating_share*s.debt_ebitda*(shock/10000),c1=1/(1/s.interest_cover+dI);return{sector:s.sector,cover0:s.interest_cover,cover1:c1,px:-s.equity_duration*(shock/100)}})}
+let simCo='';
+function bars(rows,fmtv,zero){const mx=Math.max(zero||5,...rows.map(a=>Math.abs(a.v)))*1.1;return rows.map(a=>`<div class="hb"><div class="hl">${a.l}</div><div class="ht"><div class="hz"></div><div class="hf" style="${a.v>=0?'left:50%':'right:50%'};width:${Math.abs(a.v)/mx*50}%;background:var(--${a.v>=0?'up':'dn'})"></div></div><div class="hv">${a.v==null?'–':fmtv(a.v)}</div></div>`).join('')}
 function drawSim(){
   if(!$('#bars'))return;const r=simRows();$('#sv').textContent=(shock>0?'+':'')+shock;
-  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',+c.dataset.b===shock));
+  document.querySelectorAll('#scen .chip').forEach(c=>c.classList.toggle('on',+c.dataset.b===shock));
+  const sc=SCEN.find(s=>s[0]===shock);$('#scd').textContent=sc?sc[2]:'';
   const t10=rate10(),b=t10??latestRate('Treasury Notes');$('#base').textContent=b!=null?`10-year yield now ${fmt(b,2)}% → ${fmt(b+shock/100,2)}% in this scenario.`:'';
-  const s=[...r].sort((a,b)=>a.px-b.px),av=r.reduce((t,a)=>t+a.px,0)/r.length;
-  $('#kp').innerHTML=`<div class="kpi"><span>Rate move</span><b>${shock>0?'+':''}${shock} bp</b></div><div class="kpi"><span>${shock>=0?'Hit hardest':'Gains most'}</span><b class="sm">${shock>=0?s[0].sector:s[s.length-1].sector}</b><i>${fmt(shock>=0?s[0].px:s[s.length-1].px)}%</i></div><div class="kpi"><span>${shock>=0?'Least affected':'Gains least'}</span><b class="sm">${shock>=0?s[s.length-1].sector:s[0].sector}</b><i>${fmt(shock>=0?s[s.length-1].px:s[0].px)}%</i></div><div class="kpi"><span>Average industry</span><b class="${av>=0?'up':'dn'}">${fmt(av)}%</b></div>`;
-  const mx=Math.max(5,...r.map(a=>Math.abs(a.px)))*1.1;
-  $('#bars').innerHTML=[...r].sort((a,b)=>a.px-b.px).map(a=>`<div class="hb"><div class="hl">${a.sector}</div><div class="ht"><div class="hz"></div><div class="hf" style="${a.px>=0?'left:50%':'right:50%'};width:${Math.abs(a.px)/mx*50}%;background:var(--${a.px>=0?'up':'dn'})"></div></div><div class="hv">${pc(a.px,1)}</div></div>`).join('')+`<div class="hax"><span>◀ price falls</span><span>0</span><span>price rises ▶</span></div>`;
+  const s=[...r].sort((a,b)=>a.px-b.px),allc=r.flatMap(x=>x.cos.map(c=>c.c)),nis=allc.map(c=>c.dnip).filter(x=>x!=null),below=r.reduce((t,x)=>t+(x.below||0),0),tot=allc.filter(c=>c.c1!=null).length;
+  const dn=shock>=0?s[0]:s[s.length-1],up_=shock>=0?s[s.length-1]:s[0];
+  $('#kp').innerHTML=`<div class="kpi"><span>Rate move</span><b>${shock>0?'+':''}${shock} bp</b></div><div class="kpi"><span>${shock>=0?'Hit hardest':'Gains most'}</span><b class="sm">${dn.sector}</b><i>${fmt(dn.px)}%</i></div><div class="kpi"><span>Typical profit change</span><b class="${(med(nis)??0)>=0?'up':'dn'}">${nis.length?fmt(med(nis),1)+'%':'–'}</b><i>median company</i></div><div class="kpi"><span>Under 2× coverage after</span><b>${tot?below:'–'}<i> of ${tot}</i></b></div>`;
+  $('#bars').innerHTML=bars([...r].sort((a,b)=>a.px-b.px).map(a=>({l:a.sector,v:a.px})),v=>pc(v,1))+`<div class="hax"><span>◀ price falls</span><span>0</span><span>price rises ▶</span></div>`;
+  const nr=r.filter(x=>x.dnip!=null).sort((a,b)=>a.dnip-b.dnip);
+  $('#nibars').innerHTML=nr.length?bars(nr.map(a=>({l:a.sector,v:a.dnip})),v=>pc(v,1),2)+`<div class="hax"><span>◀ profit falls</span><span>0</span><span>profit rises ▶</span></div>`:'<p class="note">Company-level data appears after the next refresh.</p>';
   const lab=c=>c<2?['Stressed','dn']:c<4?['Tight','warn']:['Comfortable','up'];
-  $('#st').innerHTML='<div class="tw"><table><tr><th class="l">Industry</th><th>Coverage now</th><th>Coverage after</th><th class="l">Status after</th></tr>'+[...r].sort((a,b)=>a.cover1-b.cover1).map(a=>{const l=lab(a.cover1);return `<tr><td class="l">${a.sector}</td><td>${fmt(a.cover0)}×</td><td class="${a.cover1<a.cover0-.05?'dn':a.cover1>a.cover0+.05?'up':''}">${fmt(a.cover1)}×</td><td class="l"><span class="pill ${l[1]==='up'?'live':l[1]==='dn'?'warn':'amber'}">${l[0]}</span></td></tr>`}).join('')+'</table></div>';
-  const tot=Object.values(port).reduce((a,b)=>a+b,0);
-  $('#pfo').innerHTML=tot>0?`<div class="big sm2">${pc(r.reduce((t,a)=>t+(port[a.sector]||0)*a.px,0)/tot,2)}</div><div class="note">estimated effect on your mix (${fmt(tot,0)}% allocated)</div>`:'<div class="note">Enter a few numbers to see your result.</div>';
+  $('#st').innerHTML='<div class="tw"><table><tr><th class="l">Industry</th><th>Coverage now</th><th>Coverage after</th><th>Profit change</th><th class="l">Status</th></tr>'+[...r].sort((a,b)=>a.cover1-b.cover1).map(a=>{const l=lab(a.cover1);return `<tr class="clk ${a.sector===simSec?'sel':''}" data-sec="${a.sector}"><td class="l"><b>${a.sector}</b> <span class="note">${a.n}</span></td><td>${fmt(a.cover0)}×</td><td class="${a.cover1<a.cover0-.05?'dn':a.cover1>a.cover0+.05?'up':''}">${fmt(a.cover1)}×</td><td>${a.dnip!=null?pc(a.dnip,1):'<span class="note">n/a</span>'}</td><td class="l"><span class="pill ${l[1]==='up'?'live':l[1]==='dn'?'warn':'amber'}">${l[0]}</span></td></tr>`}).join('')+'</table></div>';
+  document.querySelectorAll('#st tr.clk').forEach(tr=>tr.onclick=()=>{simSec=tr.dataset.sec===simSec?'':tr.dataset.sec;store.set('simSec',simSec);drawSim()});
+  const sr=r.find(x=>x.sector===simSec);
+  $('#drill').innerHTML=sr?`<h3 style="margin-top:16px">${sr.sector} — company by company</h3><div class="tw"><table><tr><th class="l">Company</th><th>Interest bill now</th><th>After</th><th>Profit change</th><th>Coverage now → after</th><th>Price effect</th></tr>${[...sr.cos].sort((a,b)=>(a.c.dnip??0)-(b.c.dnip??0)).map(({r:x,c})=>`<tr class="clk" data-co="${x.ticker}"><td class="l"><b>${x.ticker}</b> <span class="note">${(x.name||'').slice(0,22)}</span></td><td>${c.i0!=null?'$'+fmt(c.i0,2)+'B':'–'}</td><td>${c.i0!=null?'$'+fmt(c.i0+c.dInt,2)+'B':'–'}</td><td>${c.dnip!=null?pc(c.dnip,1):'<span class="note">n/a</span>'}</td><td>${c.c0!=null?fmt(c.c0)+'× → '+fmt(c.c1)+'×':'–'}</td><td>${pc(c.px,1)}</td></tr>`).join('')}</table></div>`:'';
+  document.querySelectorAll('#drill tr[data-co]').forEach(tr=>tr.onclick=()=>{simCo=tr.dataset.co;$('#lc').value=simCo;drawSim();$('#lo').scrollIntoView({block:'center',behavior:'smooth'})});
+  /* company lookup */
+  const co=screenData.find(x=>x.ticker===simCo);
+  $('#lo').innerHTML=co?(()=>{const c=calc(co);if(c.i0==null)return '<p class="note">Not enough financial data for this company.</p>';const row=(l,a,b)=>`<tr><td class="l">${l}</td><td>${a}</td><td>${b}</td></tr>`;
+    const ni1=co.ni!=null&&c.dni!=null?co.ni+c.dni:null;
+    return `<h3 style="margin-top:12px">${co.ticker} <span class="note">${co.name||''}</span></h3><div class="tw"><table><tr><th class="l">$ billions / year</th><th>Now</th><th>After</th></tr>${row('Interest bill (debt $'+fmt(co.debt,1)+'B)','$'+fmt(c.i0,2),'$'+fmt(c.i0+c.dInt,2))}${row('Interest earned on cash ($'+fmt(co.cash||0,1)+'B)','$'+fmt((co.cash||0)*((rate10()??4)/100),2),'$'+fmt((co.cash||0)*((rate10()??4)/100)+c.dInc,2))}${ni1!=null?row('Net income',  '$'+fmt(co.ni,2),'$'+fmt(ni1,2)+' ('+pc(c.dnip,1)+')'):''}${row('Interest coverage',fmt(c.c0)+'×',fmt(c.c1)+'×')}${row('Estimated stock price','$'+fmt(co.price,2),'$'+fmt(co.price*(1+c.px/100),2)+' ('+pc(c.px,1)+')')}</table></div>${c.fin?'<p class="note">Banks earn a spread between what they pay and charge, so this simple model doesn\'t estimate their profit change.</p>':''}`})():(simCo?'<p class="note">Ticker not found in the tracked list.</p>':'<p class="note">Enter a ticker to see its interest bill, profit and price before and after.</p>');
+  const tot2=Object.values(port).reduce((a,b)=>a+b,0);
+  $('#pfo').innerHTML=tot2>0?`<div class="big sm2">${pc(r.reduce((t,a)=>t+(port[a.sector]||0)*a.px,0)/tot2,2)}</div><div class="note">estimated effect on your mix (${fmt(tot2,0)}% allocated)</div>`:'<div class="note">Enter a few numbers to see your result.</div>';
   drawHist();
 }
 function drawHist(){
@@ -436,7 +539,7 @@ function answer(q){
   const L=q.toLowerCase().trim();let out=[];
   /* actions */
   let m;
-  if(m=L.match(/(?:set|change|move|what if).*?(?:rates?|shock).*?([+-]?\d{2,3})\s*(?:bp|bps|basis)?/)){const v=Math.max(-300,Math.min(300,Math.round(+m[1]/25)*25));shock=v;store.set('shock',v);go('sim');return `Set the simulator to <b>${v>0?'+':''}${v} bp</b> and opened it.`}
+  if(m=L.match(/(?:set|change|move|what if).*?(?:rates?|shock).*?([+-]?\d{1,3})\s*(?:bp|bps|basis)?/)){const v=Math.max(-500,Math.min(500,Math.round(+m[1]/5)*5));shock=v;store.set('shock',v);go('sim');return `Set the simulator to <b>${v>0?'+':''}${v} bp</b> and opened it.`}
   if(m=L.match(/^(?:go to|open|show me|take me to)\s+(.*)$/)){const map={markets:'markets',market:'markets',screener:'screener',watchlist:'watch',alerts:'watch',simulator:'sim','rate simulator':'sim',rates:'sim',oil:'viz','oil flow map':'viz','flow map':'viz','how it works':'about'};const k=Object.keys(map).find(x=>m[1].includes(x));if(k){go(map[k]);return 'Opened <b>'+MODS[map[k]].t+'</b>.'}}
   /* market prices */
   const names={'s&p':'s&p 500','sp500':'s&p 500','s&p 500':'s&p 500','nasdaq':'nasdaq','dow':'dow','russell':'russell 2000','vix':'vix','dollar':'us dollar index','gold':'gold','copper':'copper','natural gas':'natural gas','wti':'wti crude','brent':'brent crude','bitcoin':'bitcoin','btc':'bitcoin','oil price':'wti crude','crude price':'wti crude'};
@@ -447,7 +550,7 @@ function answer(q){
   const tk=(q.match(/\b[A-Z]{1,5}\b/g)||[]).filter(t=>screenData.find(x=>x.ticker===t)).slice(0,2);
   tk.forEach(t=>{const r=screenData.find(x=>x.ticker===t);out.push(`<b>${r.ticker}</b> (${r.sector}): $${fmt(r.price,2)}${r.d1!=null?', '+pc(r.d1)+' today':''}; P/E ${fmt(r.pe)}, ROE ${fmt(r.roe)}%, debt/equity ${fmt(r.debt_equity,2)}, yield ${fmt(r.div_yield,2)}%, ${pc(r.mom_1y,1)} over a year. ${passes(r)?'It <b>meets</b>':'It does <b>not</b> meet'} your screener rules. ${A('Details','stock:'+t)} ${A('Watch','watch:'+t)}`)});
   /* screener */
-  if(/screen|pass|match|how many|filter/.test(L)&&screenData.length){const h=screenData.filter(passes);out.push(`<b>${h.length} of ${screenData.length}</b> companies meet your rules (P/E ≤ ${crit.pe_max}, ROE ≥ ${crit.roe_min}%, debt/equity ≤ ${crit.de_max}, yield ≥ ${crit.dy_min}%). ${h.slice(0,8).map(r=>r.ticker).join(', ')}${h.length>8?'…':''} ${A('Open Screener','go:screener')}`)}
+  if(/screen|pass|match|how many|filter/.test(L)&&screenData.length){const h=screenData.filter(passes);out.push(`<b>${h.length} of ${screenData.length}</b> companies meet your rules (${ruleText()}). ${h.slice(0,8).map(r=>r.ticker).join(', ')}${h.length>8?'…':''} ${A('Open Screener','go:screener')}`)}
   if(/gainer|winner|best|top mover|biggest.*(up|gain)/.test(L)&&screenData.length){const s=[...screenData].filter(r=>r.d1!=null).sort((a,b)=>b.d1-a.d1).slice(0,3);if(s.length)out.push('Biggest gainers today: '+s.map(r=>`<b>${r.ticker}</b> ${pc(r.d1)}`).join(', ')+'.')}
   if(/loser|worst|biggest.*(down|drop|fall)/.test(L)&&screenData.length){const s=[...screenData].filter(r=>r.d1!=null).sort((a,b)=>a.d1-b.d1).slice(0,3);if(s.length)out.push('Biggest decliners today: '+s.map(r=>`<b>${r.ticker}</b> ${pc(r.d1)}`).join(', ')+'.')}
   /* simulator by sector */
