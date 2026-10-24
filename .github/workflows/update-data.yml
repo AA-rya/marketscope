@@ -18,11 +18,13 @@ jobs:
     timeout-minutes: 58
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install yfinance pandas
-      - name: Collect every 5 minutes for about 45 minutes (GitHub's own cron is too unreliable to call every 5 min)
+      - name: Collect every 5 minutes for about 50 minutes (GitHub's own cron is too unreliable to call every 5 min)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -30,7 +32,7 @@ jobs:
           while true; do
             python fetch_data.py || true
             git add data.json fundamentals.json
-            git diff --cached --quiet || (git commit -q -m "Update market data" && git pull --rebase -q && git push -q) || true
+            git diff --cached --quiet || (git commit -q -m "Update market data" && git pull --rebase -q origin main && git push -q origin HEAD:main) || true
             [ $(( $(date +%s) - START )) -gt 2700 ] && break
             sleep 240
           done
