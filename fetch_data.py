@@ -1,6 +1,8 @@
 """Collects public market data and writes data.json for the site. No API keys.
 Sources: Yahoo Finance (via yfinance), US Treasury (daily yield curve), US EIA (oil import/export tables)."""
-import json, os, re, statistics, urllib.request, datetime as dt
+import json, os, re, statistics, urllib.request, warnings, datetime as dt
+warnings.filterwarnings("ignore")
+DIAG = []
 from html.parser import HTMLParser
 
 UNIVERSE = """AAPL MSFT NVDA GOOGL META AVGO ORCL CRM ADBE CSCO INTC
@@ -57,7 +59,7 @@ class Rows(HTMLParser):
 
 
 def get(url, timeout=40):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (marketscope data bot)"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36", "Accept": "text/html,application/xhtml+xml,text/csv,*/*", "Accept-Language": "en-US,en;q=0.9"})
     return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "replace")
 
 
@@ -124,7 +126,7 @@ def build_curve():
         L = [l.split(",") for l in t.strip().splitlines()]; h = [c.strip('"') for c in L[0]]
         rows += [dict(zip(h, [c.strip('"') for c in r])) for r in L[1:]]
     rows.sort(key=lambda r: dt.datetime.strptime(r["Date"], "%m/%d/%Y"))
-    labs = [c for c in rows[0] if c != "Date"]
+    labs = [c for c in rows[0] if c != "Date" and "1.5" not in c]
     pick = lambda i: rows[max(0, len(rows) - 1 - i)]
     out = {"labels": labs}
     for key, i in (("now", 0), ("m1", 21), ("y1", 250)):
@@ -171,11 +173,11 @@ def main():
 
     # full Treasury curve
     try: out["curve"] = build_curve()
-    except Exception as e: print("curve fail", e)
+    except Exception as e: print("curve fail", e); DIAG.append("curve: " + repr(e)[:200])
 
     # real oil flows (EIA)
     try: out["flow"] = build_flow()
-    except Exception as e: print("flow fail", e)
+    except Exception as e: print("flow fail", e); DIAG.append("flow: " + repr(e)[:300])
 
     # stocks: fundamentals cached (slow), prices refreshed every run (fast)
     fund = {}
@@ -223,6 +225,7 @@ def main():
         else: print("too few stocks; keeping previous")
     except Exception as e: print("stocks fail", e)
 
+    out["diag"] = DIAG
     json.dump(out, open("data.json", "w"), separators=(",", ":"))
     print("ok", {k: (len(v) if hasattr(v, "__len__") else v) for k, v in out.items() if v is not None})
 
