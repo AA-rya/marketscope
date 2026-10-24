@@ -269,20 +269,20 @@ function drawViz(){
 
 function drawOil(){
   const c=$('#oil');if(!c)return;const x=c.getContext('2d'),cs=getComputedStyle(document.body),g=k=>cs.getPropertyValue(k).trim();x.clearRect(0,0,c.width,c.height);
-  const o=live&&live.oil;if(!o||(!o.wti&&!o.brent)){$('#oilnote').textContent='Appears once the live feed is connected (daily prices from FRED).';return}
+  const o=live&&live.oil;if(!o||(!o.wti&&!o.brent)){$('#oilnote').textContent='Appears once the live feed is connected (daily futures prices).';return}
   const S=[['WTI',o.wti,g('--acc')],['Brent',o.brent,g('--acc2')]].filter(s=>s[1]&&s[1].length);const all=S.flatMap(s=>s[1].map(p=>p[1])),lo=Math.min(...all)-3,hi=Math.max(...all)+3,L=50,R=c.width-20,T=30,B=c.height-26;
   x.font='12px '+g('--sans');x.strokeStyle=g('--line');x.fillStyle=g('--mute');x.lineWidth=1;
   for(let i=0;i<=4;i++){const y=T+(B-T)*i/4,v=hi-(hi-lo)*i/4;x.beginPath();x.moveTo(L,y);x.lineTo(R,y);x.stroke();x.textAlign='right';x.fillText('$'+v.toFixed(0),L-8,y+4)}
   S.forEach(([n,d,col],k)=>{x.strokeStyle=col;x.lineWidth=2.4;x.beginPath();d.forEach((p,i)=>{const px=L+(R-L)*i/(d.length-1),py=B-(B-T)*(p[1]-lo)/(hi-lo);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.fillStyle=col;x.textAlign='left';x.fillText(n+' $'+d[d.length-1][1].toFixed(2),L+10+k*130,12)});
   const d0=S[0][1];x.fillStyle=g('--mute');x.textAlign='left';x.fillText(d0[0][0],L,B+16);x.textAlign='right';x.fillText(d0[d0.length-1][0],R,B+16);
-  $('#oilnote').textContent='Daily spot prices, USD per barrel (FRED / EIA).';
+  $('#oilnote').textContent='Daily front-month futures, USD per barrel (Yahoo Finance).';
 }
 
 /* ---------- help ---------- */
 const KB=[
  ['screener|filter|flag|criteria','Screener: set max P/E, min ROE etc. Rows passing every filter are highlighted. Tick "Alert me" and you get an on-screen (and browser) notification when a new name starts passing after a data update.'],
  ['import|csv|historical|upload','Every tool has Import CSV and a Template button. Download the template, fill it with your data (e.g. exported from Yahoo Finance, FRED, EIA, Bloomberg), and import. Data is saved in your browser, so re-importing newer files updates everything and re-runs alerts.'],
- ['real.?time|live|update|refresh','Live: prices, fundamentals, Treasury yields and oil prices are collected automatically every 15 minutes from public sources (Yahoo Finance, FRED, US Treasury) and the page refreshes itself. You can also import your own CSV; the site re-reads the latest data every few minutes and your alerts fire when a new name qualifies.'],
+ ['real.?time|live|update|refresh','Live: prices, fundamentals, Treasury yields and oil prices are collected automatically every 15 minutes from public sources (Yahoo Finance and US Treasury) and the page refreshes itself. You can also import your own CSV; the site re-reads the latest data every few minutes and your alerts fire when a new name qualifies.'],
  ['rate|hike|cut|interest|simulator|bp','Simulator: a rate shock raises interest costs in proportion to floating-rate debt share and leverage, lowering coverage; long-duration equities (utilities, REITs, growth tech) lose more value because distant cash flows are discounted harder. Banks can gain from wider margins but carry credit risk.'],
  ['utilit|reit|real estate','Utilities and REITs are bond proxies: high leverage, long duration, high payout, so they usually fall most when rates rise.'],
  ['duration','Equity duration ≈ how sensitive price is to a 1% discount-rate move. Estimated price effect = −duration × Δrate (first order).'],

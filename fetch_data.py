@@ -1,6 +1,6 @@
 """Collects public market data and writes data.json for the site.
-Sources (no API keys): Yahoo Finance via yfinance, FRED public CSV, US Treasury."""
-import csv, io, json, os, statistics, sys, datetime as dt, urllib.request
+Source (no API keys): Yahoo Finance via yfinance."""
+import json, os, statistics, datetime as dt
 
 UNIVERSE = """AAPL MSFT NVDA GOOGL META AVGO ORCL CRM ADBE CSCO INTC
 NEE DUK SO D AEP XEL EXC
@@ -17,15 +17,6 @@ FLOAT = {"Technology": .20, "Utilities": .25, "Energy": .30, "Financial Services
 DUR = {"Technology": 9.0, "Utilities": 14.0, "Energy": 6.5, "Financial Services": 5.0, "Real Estate": 15.0,
        "Healthcare": 8.0, "Consumer Cyclical": 9.5, "Industrials": 8.0}
 
-def get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    return urllib.request.urlopen(req, timeout=30).read().decode()
-
-def fred(series, n):
-    rows = list(csv.reader(io.StringIO(get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"))))[1:]
-    pts = [[r[0], float(r[1])] for r in rows if len(r) > 1 and r[1] not in ("", ".")]
-    return pts[-n:]
-
 def num(v):
     return float(v) if isinstance(v, (int, float)) and v == v else None
 
@@ -36,14 +27,22 @@ def main():
         try: old = json.load(open("data.json"))
         except Exception: pass
 
-    # rates + oil from FRED (public CSV)
     out["rates"], out["oil"] = old.get("rates", {}), old.get("oil", {})
-    for k, s, n in [("DGS10", "DGS10", 260), ("DGS2", "DGS2", 260), ("DFF", "DFF", 260)]:
-        try: out["rates"][k] = fred(s, n)
-        except Exception as e: print("fred fail", s, e)
-    for k, s in [("wti", "DCOILWTICO"), ("brent", "DCOILBRENTEU")]:
-        try: out["oil"][k] = fred(s, 130)
-        except Exception as e: print("fred fail", s, e)
+    # yields and oil via Yahoo Finance (^TNX/^FVX/^IRX are quoted in percent)
+    try:
+        import yfinance as yf
+        for key, sym, n in [("DGS10", "^TNX", 260), ("DGS5", "^FVX", 260), ("DGS3M", "^IRX", 260)]:
+            try:
+                s = yf.Ticker(sym).history(period="1y")["Close"].dropna().tail(n)
+                if len(s) > 20: out["rates"][key] = [[d.strftime("%Y-%m-%d"), round(float(v), 3)] for d, v in s.items()]
+            except Exception as e: print("rate fail", sym, e)
+        for key, sym in [("wti", "CL=F"), ("brent", "BZ=F")]:
+            try:
+                s = yf.Ticker(sym).history(period="6mo")["Close"].dropna()
+                if len(s) > 20: out["oil"][key] = [[d.strftime("%Y-%m-%d"), round(float(v), 2)] for d, v in s.items()]
+            except Exception as e: print("oil fail", sym, e)
+    except Exception as e:
+        print("yfinance unavailable", e)
 
     # stocks via yfinance
     screen, raw = [], []
