@@ -45,17 +45,30 @@ def num(v):
 
 
 class Rows(HTMLParser):
+    """Tolerant row parser: handles unclosed <tr>/<td> tags like a browser does."""
     def __init__(self):
-        super().__init__(); self.rows, self.stack, self.cell = [], [], None
+        super().__init__(); self.rows, self.row, self.cell = [], None, None
+    def _end_cell(self):
+        if self.cell is not None and self.row is not None: self.row.append((self.cell[0], self.cell[1].strip()))
+        self.cell = None
+    def _end_row(self):
+        self._end_cell()
+        if self.row: self.rows.append(self.row)
+        self.row = None
     def handle_starttag(self, tag, attrs):
-        if tag == "tr": self.stack.append([])
-        elif tag in ("td", "th") and self.stack: self.cell = [dict(attrs).get("class", ""), ""]
+        if tag == "tr": self._end_row(); self.row = []
+        elif tag in ("td", "th"):
+            self._end_cell()
+            if self.row is None: self.row = []
+            self.cell = [dict(attrs).get("class") or "", ""]
     def handle_data(self, d):
         if self.cell is not None: self.cell[1] += d
     def handle_endtag(self, tag):
-        if tag in ("td", "th") and self.cell is not None and self.stack:
-            self.stack[-1].append((self.cell[0], self.cell[1].strip())); self.cell = None
-        elif tag == "tr" and self.stack: self.rows.append(self.stack.pop())
+        if tag in ("td", "th"): self._end_cell()
+        elif tag == "tr": self._end_row()
+        elif tag == "table": self._end_row()
+    def close(self):
+        super().close(); self._end_row()
 
 
 def get(url, timeout=40):
@@ -64,7 +77,7 @@ def get(url, timeout=40):
 
 
 def eia_table(url):
-    p = Rows(); p.feed(get(url))
+    p = Rows(); p.feed(get(url)); p.close()
     months, data = [], {}
     for r in p.rows:
         texts = [t for _, t in r]
